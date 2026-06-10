@@ -14,6 +14,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Tag meghatározása
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v-manual-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Tag létrehozása (ha kézi indítás)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag ${{ steps.tag.outputs.tag }}
+          git push origin ${{ steps.tag.outputs.tag }}
+
       - name: Python telepítése
         uses: actions/setup-python@v5
         with:
@@ -42,8 +63,6 @@ jobs:
         shell: cmd
         run: |
           pyinstaller --onefile --noconsole --name "CikkChecker" app.py
-          echo === dist tartalom ===
-          dir dist\
           copy dist\CikkChecker.exe CikkChecker_app.exe
 
       - name: Inno Setup telepítő készítése
@@ -54,10 +73,11 @@ jobs:
       - name: GitHub Release létrehozása
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.tag }}
           files: Output/CikkCheckerSetup.exe
-          name: "CikkChecker ${{ github.ref_name }}"
+          name: "CikkChecker ${{ steps.tag.outputs.tag }}"
           body: |
-            ## CikkChecker ${{ github.ref_name }}
+            ## CikkChecker ${{ steps.tag.outputs.tag }}
 
             ### Telepítés
             1. Töltsd le a `CikkCheckerSetup.exe` fájlt
