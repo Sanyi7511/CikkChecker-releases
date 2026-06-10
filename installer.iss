@@ -17,7 +17,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=Output
 OutputBaseFilename=CikkCheckerSetup
-Compression=lzma2/ultra64
+Compression=lzma2/ultra
 SolidCompression=yes
 MinVersion=10.0
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -35,7 +35,8 @@ Name: "hungarian"; MessagesFile: "compiler:Languages\Hungarian.isl"
 Name: "desktopicon"; Description: "Asztali parancsikon létrehozása"; GroupDescription: "További beállítások:"; Flags: checked
 
 [Files]
-Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; CikkChecker_app.exe = a workflow gyökérbe másolta a dist\CikkChecker.exe-t
+Source: "CikkChecker_app.exe"; DestDir: "{app}"; DestName: "CikkChecker.exe"; Flags: ignoreversion
 Source: "checker_core.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]

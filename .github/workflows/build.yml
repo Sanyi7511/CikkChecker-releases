@@ -35,11 +35,16 @@ jobs:
           copy target\release\checker_core.exe ..\checker_core.exe
 
       - name: Python csomagok + PyInstaller
+        shell: cmd
         run: pip install customtkinter pillow openpyxl requests pystray pyinstaller
 
       - name: app.exe buildelése (PyInstaller)
         shell: cmd
-        run: pyinstaller --onefile --noconsole --name "CikkChecker" app.py
+        run: |
+          pyinstaller --onefile --noconsole --name "CikkChecker" app.py
+          echo === dist tartalom ===
+          dir dist\
+          copy dist\CikkChecker.exe CikkChecker_app.exe
 
       - name: Inno Setup telepítő készítése
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
