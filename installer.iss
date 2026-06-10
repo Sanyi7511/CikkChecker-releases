@@ -29,23 +29,22 @@ UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
-Name: "hungarian"; MessagesFile: "compiler:Languages\Hungarian.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Asztali parancsikon létrehozása"; GroupDescription: "További beállítások:"; Flags: checked
+Name: "desktopicon"; Description: "Create desktop shortcut"; GroupDescription: "Additional options:"; Flags: checked
 
 [Files]
-; CikkChecker_app.exe = a workflow gyökérbe másolta a dist\CikkChecker.exe-t
 Source: "CikkChecker_app.exe"; DestDir: "{app}"; DestName: "CikkChecker.exe"; Flags: ignoreversion
 Source: "checker_core.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\{#MyAppName} eltávolítása"; Filename: "{uninstallexe}"
+Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "CikkChecker indítása"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch CikkChecker"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
