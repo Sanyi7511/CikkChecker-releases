@@ -3,73 +3,49 @@ name: Build CikkChecker Installer
 on:
   push:
     tags:
-      - 'v*'          # Fut amikor v1.0.0 stb. taget pusholsz
-  workflow_dispatch:  # Kézzel is elindítható a GitHub weboldalán
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      # ── 1. Kód letöltése ────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Python telepítése ────────────────────────────────────────────────
       - name: Python telepítése
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # ── 3. Rust telepítése ──────────────────────────────────────────────────
       - name: Rust telepítése
         uses: dtolnay/rust-toolchain@stable
 
-      # ── 4. Rust cache (gyorsabb újrabuild) ──────────────────────────────────
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "checker_core_src -> target"
 
-      # ── 5. checker_core.exe fordítása ────────────────────────────────────────
       - name: checker_core.exe fordítása
+        shell: cmd
         run: |
           cd checker_core_src
           cargo build --release
           copy target\release\checker_core.exe ..\checker_core.exe
 
-      # ── 6. Python függőségek + PyInstaller az app.py-hoz ────────────────────
       - name: Python csomagok + PyInstaller
-        run: |
-          pip install customtkinter pillow openpyxl requests pystray pyinstaller
+        run: pip install customtkinter pillow openpyxl requests pystray pyinstaller
 
-      # ── 7. app.exe készítése PyInstaller-rel ─────────────────────────────────
-      - name: app.exe buildelése
-        run: |
-          pyinstaller `
-            --onefile `
-            --noconsole `
-            --name "CikkChecker" `
-            --icon "assets\icon.ico" `
-            app.py
-        continue-on-error: true  # Ha nincs icon.ico, akkor is folytatja
+      - name: app.exe buildelése (PyInstaller)
+        shell: cmd
+        run: pyinstaller --onefile --noconsole --name "CikkChecker" app.py
 
-      - name: app.exe buildelése (icon nélkül, fallback)
-        if: ${{ !steps.build_with_icon.outcome || steps.build_with_icon.outcome == 'failure' }}
-        run: |
-          pyinstaller `
-            --onefile `
-            --noconsole `
-            --name "CikkChecker" `
-            app.py
-
-      # ── 8. Inno Setup telepítő készítése ─────────────────────────────────────
       - name: Inno Setup telepítő készítése
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           path: installer.iss
 
-      # ── 9. Release létrehozása és .exe feltöltése ────────────────────────────
       - name: GitHub Release létrehozása
         uses: softprops/action-gh-release@v2
         with:
