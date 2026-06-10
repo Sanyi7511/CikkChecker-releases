@@ -32,7 +32,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create desktop shortcut"; GroupDescription: "Additional options:"; Flags: checked
+Name: "desktopicon"; Description: "Create desktop shortcut"
 
 [Files]
 Source: "CikkChecker_app.exe"; DestDir: "{app}"; DestName: "CikkChecker.exe"; Flags: ignoreversion
