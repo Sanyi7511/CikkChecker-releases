@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Verzio (pl. v3.0.0)'
+        description: 'Verzio (pl. v3.1.0)'
         required: true
         default: 'v3.0.0'
 
@@ -25,10 +25,14 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "RELEASE_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            RAW="${{ github.event.inputs.version }}"
           else
-            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            RAW="${GITHUB_REF#refs/tags/}"
           fi
+          # Strip leading "v" for the version number itself
+          VERSION="${RAW#v}"
+          echo "RELEASE_TAG=${RAW}" >> $GITHUB_ENV
+          echo "APP_VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Tag letrehozasa (kezzel inditasnal)
         if: github.event_name == 'workflow_dispatch'
@@ -36,10 +40,15 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "${{ github.event.inputs.version }}"
-          git push origin "${{ github.event.inputs.version }}"
+          git tag "${{ env.RELEASE_TAG }}"
+          git push origin "${{ env.RELEASE_TAG }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Write version into version.txt so the app knows its own version ──
+      - name: Verzio beirasa version.txt-be
+        shell: bash
+        run: echo "${{ env.APP_VERSION }}" > version.txt
 
       - name: Python telepitese
         uses: actions/setup-python@v5
@@ -72,6 +81,7 @@ jobs:
             --icon "assets\icon.ico" ^
             --add-data "ui;ui" ^
             --add-data "assets;assets" ^
+            --add-data "version.txt;." ^
             app.py
           copy dist\CikkChecker.exe CikkChecker_app.exe
 
@@ -80,7 +90,7 @@ jobs:
         with:
           path: installer.iss
 
-      - name: GitHub Release
+      - name: GitHub Release letrehozasa
         shell: bash
         run: |
           gh release create "${{ env.RELEASE_TAG }}" \
@@ -89,8 +99,12 @@ jobs:
             --notes "## CikkChecker ${{ env.RELEASE_TAG }}
 
           ### Telepites
-          1. Töltsd le a CikkCheckerSetup.exe fajlt
+          1. Töltsd le a \`CikkCheckerSetup.exe\` fajlt
           2. Futtasd telepitokent — Kesz!
+
+          ### Automatikus frissites
+          Az alkalmazas automatikusan eszleli az uj verziokat
+          es letolti azokat, amint megjelennek.
 
           ### Rendszerkovetelmenyek
           - Windows 10 / 11 (64-bit)"

@@ -553,15 +553,21 @@
   <!-- ════════════════════════════════════════════════════════════════════ -->
   <main class="main">
 
-    <!-- Update banner -->
+    <!-- Update banner (auto-download, no button needed) -->
     <div class="update-banner" id="update-banner">
-      <span style="font-size:18px">🚀</span>
-      <div class="update-text">
-        <strong id="update-version">Új verzió elérhető</strong>
-        <span style="color:var(--text2);margin-left:8px;font-size:12px" id="update-subtitle"></span>
+      <span style="font-size:18px" id="update-icon">🚀</span>
+      <div class="update-text" style="flex:1">
+        <strong id="update-version">Új verzió letöltése...</strong>
+        <div style="margin-top:5px;display:none" id="upd-progress-wrap">
+          <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
+            <div id="upd-progress-bar"
+                 style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--pink));transition:width 0.3s;border-radius:2px">
+            </div>
+          </div>
+          <span id="upd-pct" style="font-size:10px;color:var(--text3);margin-top:3px;display:block">0%</span>
+        </div>
       </div>
-      <button class="btn-update-now" onclick="doUpdate()">Frissítés</button>
-      <button class="btn-dismiss" onclick="dismissBanner()">✕</button>
+      <button class="btn-dismiss" onclick="dismissBanner()" id="upd-dismiss-btn">✕</button>
     </div>
 
     <!-- Stat cards -->
@@ -855,9 +861,9 @@ function onDone() {
 }
 
 function onUpdateAvailable(version, asset) {
-  state.updateVersion = version; state.updateAsset = asset;
-  document.getElementById('update-version').textContent = `Új verzió: ${version}`;
-  document.getElementById('update-banner').classList.add('show');
+  // Python will auto-download; just log here
+  // The banner will appear via onUpdateDownloading()
+  onLog(`[!!] Új GitHub release észlelve: v${version} — letöltés indul automatikusan`);
 }
 
 // ── UI Actions ─────────────────────────────────────────────────────────────
@@ -947,11 +953,34 @@ function clearResults() {
   resetStats();
 }
 
-function dismissBanner() { document.getElementById('update-banner').classList.remove('show'); }
+function dismissBanner() {
+  document.getElementById('update-banner').classList.remove('show');
+}
 
-async function doUpdate() {
-  dismissBanner();
-  if (state.updateAsset) await py('do_update', state.updateAsset, state.updateVersion);
+function onUpdateDownloading(version) {
+  const banner = document.getElementById('update-banner');
+  banner.classList.add('show');
+  document.getElementById('update-version').textContent = `v${version} letöltése...`;
+  document.getElementById('update-icon').textContent = '⬇';
+  document.getElementById('upd-progress-wrap').style.display = 'block';
+  document.getElementById('upd-dismiss-btn').style.display = 'none';
+}
+
+function onUpdateProgress(pct) {
+  document.getElementById('upd-progress-bar').style.width = pct + '%';
+  document.getElementById('upd-pct').textContent = pct + '%';
+}
+
+function onUpdateReady() {
+  document.getElementById('update-version').textContent = 'Telepítés indul... Az alkalmazás bezárul.';
+  document.getElementById('update-icon').textContent = '✅';
+  document.getElementById('upd-pct').textContent = 'Kész!';
+}
+
+function onUpdateFailed() {
+  document.getElementById('update-version').textContent = 'Frissítés sikertelen';
+  document.getElementById('update-icon').textContent = '❌';
+  document.getElementById('upd-dismiss-btn').style.display = 'block';
 }
 
 function resolveUnknown(action) {

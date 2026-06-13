@@ -11,7 +11,16 @@ import tkinter as tk
 import requests
 import webview
 
-APP_VERSION  = "3.0.0"
+# Version is read from version.txt (written by GitHub Actions at build time)
+def _read_version():
+    try:
+        vpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
+        with open(vpath, encoding="utf-8") as f:
+            return f.read().strip().lstrip("v")
+    except:
+        return "0.0.0"
+
+APP_VERSION = _read_version()
 UPDATE_REPO  = "Sanyi7511/CikkChecker-releases"
 UPDATE_ASSET = "CikkCheckerSetup.exe"
 BINARY_NAME  = "checker_core.exe" if sys.platform == "win32" else "checker_core"
@@ -359,46 +368,66 @@ class Api:
                 f"https://api.github.com/repos/{UPDATE_REPO}/releases/latest",
                 timeout=10)
             r.raise_for_status(); data = r.json()
-        except: return
+        except:
+            self._js("onLog('[--] Frissítés ellenőrzése sikertelen.')")
+            return
 
-        latest = data.get("tag_name","").strip()
+        latest = data.get("tag_name","").strip().lstrip("v")
         notes  = data.get("body","").strip()
 
         def _v(s):
             s = s.strip().lstrip("v")
-            return tuple(int(x) if x.isdigit() else 0 for x in s.split("."))
+            parts = s.split(".")
+            return tuple(int(x) if x.isdigit() else 0 for x in parts)
 
-        if not latest or _v(latest) <= _v(APP_VERSION):
-            self._js("onLog('[--] Nem érhető el újabb verzió.')")
+        current = _v(APP_VERSION)
+        remote  = _v(latest)
+
+        self._js(f"onLog('[--] Jelenlegi verzió: {APP_VERSION} | GitHub: {latest}')")
+
+        if not latest or remote <= current:
+            self._js("onLog('[--] Nincs újabb verzió.')")
             return
 
         asset_url = next((a["browser_download_url"] for a in data.get("assets",[])
                           if a.get("name") == UPDATE_ASSET), None)
-        if not asset_url: return
+        if not asset_url:
+            self._js("onLog('[--] Új verzió van, de a telepítő nem található.')")
+            return
 
-        self._js(f"onUpdateAvailable({json.dumps(latest)},{json.dumps(asset_url)})")
-
-    def do_update(self, asset_url, latest):
+        self._js(f"onLog('[!!] Új verzió észlelve: {latest} — automatikus letöltés indul...')")
+        # Auto-download immediately, no user prompt needed
         threading.Thread(target=self._dl_update,
                          args=(asset_url, latest), daemon=True).start()
-        return True
 
     def _dl_update(self, url, latest):
-        self._js(f"onLog({json.dumps(f'[--] Letöltés: {latest}...')})")
+        self._js(f"onLog('[--] Frissítő letöltése: v{latest}')")
         self._js("onStatus('Frissítés letöltése...')")
+        self._js(f"onUpdateDownloading({json.dumps(latest)})")
         try:
             tmp = os.path.join(tempfile.gettempdir(), UPDATE_ASSET)
-            with requests.get(url, stream=True, timeout=60) as r:
+            with requests.get(url, stream=True, timeout=120) as r:
                 r.raise_for_status()
-                with open(tmp,"wb") as f:
+                total = int(r.headers.get("content-length", 0))
+                downloaded = 0
+                with open(tmp, "wb") as f:
                     for chunk in r.iter_content(8192):
-                        if chunk: f.write(chunk)
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total:
+                                pct = int(downloaded / total * 100)
+                                self._js(f"onUpdateProgress({pct})")
+            self._js("onLog('[--] Letöltés kész — telepítő indul...')")
+            self._js("onUpdateReady()")
+            time.sleep(1.5)
             import subprocess as sp
             sp.Popen([tmp], shell=True)
             time.sleep(1)
             self._window.destroy()
         except Exception as e:
             self._js(f"onLog({json.dumps(f'[ERR] Frissítési hiba: {e}')})")
+            self._js("onUpdateFailed()")
 
     # ── JS helper ─────────────────────────────────────────────────────────
     def _js(self, code):
