@@ -63,12 +63,16 @@ jobs:
 
       - name: Python csomagok + PyInstaller
         shell: cmd
-        run: pip install customtkinter pillow openpyxl requests pystray pyinstaller
+        run: pip install pywebview requests openpyxl pillow pyinstaller
 
       - name: app.exe buildelese (PyInstaller)
         shell: cmd
         run: |
-          pyinstaller --onefile --noconsole --name "CikkChecker" --icon "assets\icon.ico" app.py
+          pyinstaller --onefile --noconsole --name "CikkChecker" ^
+            --icon "assets\icon.ico" ^
+            --add-data "ui;ui" ^
+            --add-data "assets;assets" ^
+            app.py
           copy dist\CikkChecker.exe CikkChecker_app.exe
 
       - name: Inno Setup telepito
@@ -86,8 +90,7 @@ jobs:
 
           ### Telepites
           1. Töltsd le a CikkCheckerSetup.exe fajlt
-          2. Futtasd telepitokent
-          3. Kesz - asztali parancsikonbol inditható
+          2. Futtasd telepitokent — Kesz!
 
           ### Rendszerkovetelmenyek
           - Windows 10 / 11 (64-bit)"

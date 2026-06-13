@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CikkChecker</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --grad1: #0D0821;
+    --grad2: #1a0f3c;
+    --grad3: #2d1b69;
+    --accent: #7B5CF0;
+    --accent2: #A78BFA;
+    --pink: #EC4899;
+    --orange: #F97316;
+    --green: #22C55E;
+    --red: #EF4444;
+    --amber: #F59E0B;
+    --glass: rgba(255,255,255,0.06);
+    --glass2: rgba(255,255,255,0.10);
+    --glass-border: rgba(255,255,255,0.12);
+    --text: #F1F0FF;
+    --text2: #A89FCC;
+    --text3: #5C5480;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--grad1);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── Animated gradient background ───────────────────────────────────── */
+  .bg-gradient {
+    position: fixed; inset: 0; z-index: 0;
+    background: linear-gradient(135deg, #0D0821 0%, #1a0f3c 35%, #2d1b69 65%, #1a0f3c 100%);
+  }
+
+  .blob {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); opacity: 0.35; z-index: 0;
+    animation: float 12s ease-in-out infinite alternate;
+  }
+  .blob1 { width: 500px; height: 500px; background: radial-gradient(#7B5CF0, transparent); top: -150px; left: -100px; animation-delay: 0s; }
+  .blob2 { width: 400px; height: 400px; background: radial-gradient(#EC4899, transparent); bottom: -100px; right: -100px; animation-delay: -4s; }
+  .blob3 { width: 300px; height: 300px; background: radial-gradient(#F97316, transparent); top: 40%; right: 20%; animation-delay: -8s; }
+
+  @keyframes float {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(30px, 20px) scale(1.1); }
+  }
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: 100vh;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────────────────── */
+  .sidebar {
+    background: rgba(13, 8, 33, 0.7);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border);
+    display: flex; flex-direction: column;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+  /* Logo */
+  .logo {
+    padding: 24px 20px 16px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .logo img { width: 40px; height: 40px; border-radius: 10px; }
+  .logo-text { display: flex; flex-direction: column; }
+  .logo-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-name span { color: var(--accent2); }
+  .logo-ver { font-size: 10px; color: var(--text3); margin-top: 1px; }
+  .logo-gear {
+    margin-left: auto; width: 32px; height: 32px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; color: var(--text2); font-size: 15px;
+  }
+  .logo-gear:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Sidebar sections */
+  .sb-section { font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--text3); padding: 16px 20px 6px; text-transform: uppercase; }
+
+  .sb-card {
+    margin: 0 12px 6px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 14px;
+  }
+
+  label.sb-label { font-size: 10px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.8px; display: block; margin-bottom: 5px; }
+
+  input[type=text], input[type=password] {
+    width: 100%; padding: 8px 12px; font-size: 13px;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+    border-radius: 8px; color: var(--text); outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type=text]:focus, input[type=password]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(123,92,240,0.15);
+  }
+  input[type=text]::placeholder, input[type=password]::placeholder { color: var(--text3); }
+
+  .detect-badge {
+    font-size: 10px; margin-top: 6px; padding: 4px 8px;
+    border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+  }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    cursor: pointer; font-size: 12px; color: var(--text2);
+  }
+  .checkbox-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+  .sb-field { margin-bottom: 10px; }
+  .sb-field:last-child { margin-bottom: 0; }
+
+  .file-btn {
+    width: 100%; margin-top: 6px; padding: 7px 12px; font-size: 12px;
+    background: var(--glass2); border: 1px solid var(--glass-border);
+    border-radius: 8px; color: var(--text2); cursor: pointer; transition: all 0.2s;
+    text-align: left;
+  }
+  .file-btn:hover { background: rgba(123,92,240,0.2); border-color: var(--accent); color: var(--text); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  select {
+    width: 100%; padding: 8px 12px; font-size: 12px;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+    border-radius: 8px; color: var(--text); outline: none;
+    appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C5480' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(123,92,240,0.15); }
+  select option { background: #1a0f3c; }
+
+  /* Action buttons */
+  .action-grid { display: grid; gap: 8px; }
+  .btn {
+    padding: 11px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s; display: flex;
+    align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.2px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-start {
+    background: linear-gradient(135deg, var(--accent), #5B21B6);
+    color: white; font-size: 14px; padding: 13px;
+    box-shadow: 0 4px 20px rgba(123,92,240,0.4);
+  }
+  .btn-start:hover:not(:disabled) { box-shadow: 0 6px 25px rgba(123,92,240,0.6); transform: translateY(-1px); }
+
+  .btn-stop { background: rgba(239,68,68,0.2); color: #F87171; border: 1px solid rgba(239,68,68,0.3); }
+  .btn-stop:hover { background: rgba(239,68,68,0.35); }
+  .btn-restart { background: rgba(245,158,11,0.2); color: #FCD34D; border: 1px solid rgba(245,158,11,0.3); }
+  .btn-restart:hover { background: rgba(245,158,11,0.35); }
+  .btn-secondary { background: var(--glass); color: var(--text2); border: 1px solid var(--glass-border); }
+  .btn-secondary:hover { background: var(--glass2); color: var(--text); }
+
+  .btn-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ── Main panel ───────────────────────────────────────────────────────── */
+  .main {
+    display: flex; flex-direction: column;
+    padding: 20px; gap: 16px; overflow: hidden;
+  }
+
+  /* Stat cards */
+  .stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+
+  .stat-card {
+    background: var(--glass); backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border); border-radius: 14px;
+    padding: 16px; position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+  .stat-card::before {
+    content: ''; position: absolute; inset: 0; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+    pointer-events: none;
+  }
+  .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+  .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .stat-card.accent .stat-value { color: var(--accent2); }
+  .stat-card.green .stat-value  { color: var(--green); }
+  .stat-card.red .stat-value    { color: var(--red); }
+  .stat-card.amber .stat-value  { color: var(--amber); }
+
+  /* Glow dot on card */
+  .stat-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Progress card */
+  .progress-card {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; }
+  .status-text { font-size: 15px; font-weight: 600; }
+  .pct-text { font-size: 13px; color: var(--text3); }
+
+  .progress-bar-bg {
+    height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 3px; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    transition: width 0.4s ease; position: relative;
+  }
+  .progress-bar-fill::after {
+    content: ''; position: absolute; right: 0; top: -4px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: white; box-shadow: 0 0 10px var(--accent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .progress-bar-fill.active::after { opacity: 1; }
+
+  /* Update banner */
+  .update-banner {
+    background: linear-gradient(90deg, rgba(123,92,240,0.2), rgba(236,72,153,0.1));
+    border: 1px solid rgba(123,92,240,0.4); border-radius: 12px;
+    padding: 10px 16px; display: flex; align-items: center; gap: 12px;
+    display: none;
+  }
+  .update-banner.show { display: flex; }
+  .update-text { flex: 1; font-size: 13px; }
+  .update-text strong { color: var(--accent2); }
+  .btn-update-now {
+    padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    background: var(--accent); color: white; border: none; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-update-now:hover { background: var(--accent2); }
+  .btn-dismiss { background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 16px; padding: 4px; }
+  .btn-dismiss:hover { color: var(--text); }
+
+  /* ── Bottom: results + log + manual ──────────────────────────────────── */
+  .bottom { display: grid; grid-template-columns: 1fr 280px; gap: 12px; flex: 1; min-height: 0; }
+
+  .results-panel {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 14px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+  .panel-header .btn-clear {
+    font-size: 11px; padding: 4px 10px; border-radius: 6px;
+    background: var(--glass2); border: 1px solid var(--glass-border);
+    color: var(--text3); cursor: pointer;
+  }
+  .panel-header .btn-clear:hover { color: var(--text); background: var(--glass2); }
+
+  /* Results table */
+  .table-header {
+    display: grid; grid-template-columns: 1fr 140px 120px;
+    padding: 8px 14px; font-size: 10px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.8px; flex-shrink: 0;
+  }
+  .table-body { overflow-y: auto; flex: 1; }
+  .table-body::-webkit-scrollbar { width: 4px; }
+  .table-body::-webkit-scrollbar-track { background: transparent; }
+  .table-body::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+  .table-row {
+    display: grid; grid-template-columns: 1fr 140px 120px;
+    padding: 8px 14px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    align-items: center; transition: background 0.15s;
+  }
+  .table-row:hover { background: var(--glass); }
+  .table-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .code-cell { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text); }
+  .avail-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .avail-van    { background: rgba(34,197,94,0.15);  color: #4ade80; }
+  .avail-nincs  { background: rgba(239,68,68,0.15);  color: #f87171; }
+  .avail-kulso  { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .avail-ism    { background: rgba(100,100,120,0.15);color: #9ca3af; }
+  .price-cell   { color: var(--text2); font-size: 12px; text-align: center; }
+
+  /* Right side: log + manual */
+  .right-side { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+  .log-panel {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 14px; display: flex; flex-direction: column;
+    flex: 3; overflow: hidden; min-height: 0;
+  }
+  .log-body {
+    overflow-y: auto; flex: 1; padding: 10px 12px;
+    font-family: 'Consolas', monospace; font-size: 10px; color: var(--text2);
+    line-height: 1.6;
+  }
+  .log-body::-webkit-scrollbar { width: 3px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+  .manual-panel {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 14px; display: flex; flex-direction: column;
+    flex: 2; overflow: hidden; min-height: 0;
+  }
+  textarea {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'Consolas', monospace; font-size: 11px;
+    resize: none; padding: 10px 12px; line-height: 1.6;
+  }
+  textarea::placeholder { color: var(--text3); }
+
+  /* ── Settings overlay ────────────────────────────────────────────────── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+  }
+  .overlay.show { display: flex; }
+
+  .settings-modal {
+    background: linear-gradient(135deg, #1a0f3c, #0D0821);
+    border: 1px solid var(--glass-border); border-radius: 20px;
+    width: 520px; max-height: 80vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+  }
+  .modal-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { overflow-y: auto; padding: 20px 24px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+  .modal-body::-webkit-scrollbar { width: 4px; }
+  .modal-body::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+  .setting-group { display: flex; flex-direction: column; gap: 12px; }
+  .setting-group h3 { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; }
+  .setting-label { font-size: 13px; color: var(--text); }
+  .setting-desc  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Toggle switch */
+  .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: rgba(255,255,255,0.15); border-radius: 22px; transition: 0.3s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%; transition: 0.3s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  .modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--glass-border);
+    display: flex; gap: 10px; justify-content: flex-end;
+  }
+  .btn-modal-save {
+    padding: 10px 24px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    background: linear-gradient(135deg, var(--accent), #5B21B6); color: white;
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-modal-save:hover { box-shadow: 0 4px 15px rgba(123,92,240,0.5); }
+  .btn-modal-cancel {
+    padding: 10px 20px; border-radius: 10px; font-size: 13px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    color: var(--text2); cursor: pointer;
+  }
+
+  /* ── Duplicate / Unknown dialogs ─────────────────────────────────────── */
+  .dialog-modal {
+    background: linear-gradient(135deg, #1a0f3c, #0D0821);
+    border: 1px solid var(--glass-border); border-radius: 20px;
+    width: 480px; max-height: 70vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+  }
+  .dialog-hdr {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--glass-border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dialog-icon { font-size: 22px; }
+  .dialog-title { font-size: 16px; font-weight: 700; }
+  .dialog-body { padding: 16px 24px; flex: 1; overflow-y: auto; }
+  .dialog-body pre {
+    background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 14px;
+    font-family: Consolas, monospace; font-size: 11px; color: var(--text2);
+    max-height: 160px; overflow-y: auto; margin-top: 10px;
+  }
+  .dialog-footer { padding: 12px 24px 20px; display: flex; gap: 10px; }
+  .dialog-footer .btn { flex: 1; }
+
+  /* ── Animations ──────────────────────────────────────────────────────── */
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+  /* ── Scrollbar global ────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="bg-gradient"></div>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<div class="app">
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- SIDEBAR -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Logo -->
+    <div class="logo">
+      <img id="logo-img" src="../assets/logo.png" onerror="this.style.display='none'">
+      <div class="logo-text">
+        <div class="logo-name">Cikk<span>Checker</span></div>
+        <div class="logo-ver" id="app-version">v3.0.0</div>
+      </div>
+      <div class="logo-gear" onclick="openSettings()" title="Beállítások">⚙</div>
+    </div>
+
+    <!-- Connection -->
+    <div class="sb-section" data-i18n="s_connection">KAPCSOLAT</div>
+    <div class="sb-card">
+      <div class="sb-field">
+        <label class="sb-label" data-i18n="url_label">Weboldal URL</label>
+        <input type="text" id="url" placeholder="https://" onblur="detectLogin()">
+        <div class="detect-badge" id="detect-badge" style="display:none"></div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="login-required">
+        <label for="login-required" data-i18n="login_required">Bejelentkezés szükséges</label>
+      </div>
+    </div>
+
+    <!-- Login -->
+    <div class="sb-section" data-i18n="s_login">BEJELENTKEZÉS</div>
+    <div class="sb-card" id="login-card">
+      <div class="sb-field">
+        <label class="sb-label" data-i18n="username">Felhasználónév</label>
+        <input type="text" id="username">
+      </div>
+      <div class="sb-field">
+        <label class="sb-label" data-i18n="password">Jelszó</label>
+        <input type="password" id="password">
+      </div>
+    </div>
+
+    <!-- Files -->
+    <div class="sb-section" data-i18n="s_files">FÁJLOK</div>
+    <div class="sb-card">
+      <div class="sb-field">
+        <label class="sb-label" data-i18n="codes_txt">Cikkszám TXT</label>
+        <input type="text" id="txt-path" readonly>
+        <button class="file-btn" onclick="browseTxt()">📂 TXT kiválasztása</button>
+      </div>
+      <div class="sb-field">
+        <label class="sb-label" data-i18n="excel_output">Excel kimenet</label>
+        <input type="text" id="xlsx-path" readonly>
+        <button class="file-btn" onclick="browseXlsx()">💾 Excel mentési helye</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="sb-section" data-i18n="s_settings">BEÁLLÍTÁSOK</div>
+    <div class="sb-card">
+      <div class="row2">
+        <div class="sb-field">
+          <label class="sb-label" data-i18n="wait_sec">Várakozás (mp)</label>
+          <input type="text" id="sleep" value="0.8">
+        </div>
+        <div class="sb-field">
+          <label class="sb-label" data-i18n="save_every">Mentés ennyinként</label>
+          <input type="text" id="save-every" value="100">
+        </div>
+      </div>
+      <div class="sb-field">
+        <label class="sb-label" data-i18n="sort_order">Sorrend</label>
+        <select id="sort-order">
+          <option value="abc">ABC (A→Z)</option>
+          <option value="abc_desc">ABC (Z→A)</option>
+          <option value="num">Szám (0→9)</option>
+          <option value="num_desc">Szám (9→0)</option>
+          <option value="none">Eredeti sorrend</option>
+        </select>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="auto-rm"> <label for="auto-rm" data-i18n="auto_rm_dup">Auto duplikátum eltávolítás</label>
+      </div>
+      <div class="checkbox-row" style="margin-top:6px">
+        <input type="checkbox" id="save-dup" checked> <label for="save-dup" data-i18n="save_dup_txt">Duplikátumok TXT-be</label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="sb-section" data-i18n="s_actions">MŰVELETEK</div>
+    <div class="sb-card">
+      <div class="action-grid">
+        <button class="btn btn-start" id="btn-start" onclick="startAction()">▶&nbsp; Indítás</button>
+        <div class="btn-row2">
+          <button class="btn btn-stop"    onclick="stopProcess()">⏹ Stop</button>
+          <button class="btn btn-restart" onclick="restartProcess()">↺ Újra</button>
+        </div>
+        <button class="btn btn-secondary" onclick="checkUpdate()">🔄 Frissítés keresése</button>
+        <button class="btn btn-secondary" onclick="clearLog()">🗑 Log törlése</button>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </aside>
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- MAIN -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <main class="main">
+
+    <!-- Update banner -->
+    <div class="update-banner" id="update-banner">
+      <span style="font-size:18px">🚀</span>
+      <div class="update-text">
+        <strong id="update-version">Új verzió elérhető</strong>
+        <span style="color:var(--text2);margin-left:8px;font-size:12px" id="update-subtitle"></span>
+      </div>
+      <button class="btn-update-now" onclick="doUpdate()">Frissítés</button>
+      <button class="btn-dismiss" onclick="dismissBanner()">✕</button>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">📋 Összes</div>
+        <div class="stat-value" id="s-total">—</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-label"><span class="stat-dot" style="color:var(--accent2)"></span> Kész</div>
+        <div class="stat-value" id="s-done">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label"><span class="stat-dot" style="color:var(--green)"></span> Elérhető</div>
+        <div class="stat-value" id="s-van">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label"><span class="stat-dot" style="color:var(--red)"></span> Nem elérhető</div>
+        <div class="stat-value" id="s-nincs">0</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label"><span class="stat-dot" style="color:var(--amber)"></span> Külső raktár</div>
+        <div class="stat-value" id="s-kulso">0</div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-card">
+      <div class="progress-top">
+        <div class="status-text" id="status-text">Várakozás</div>
+        <div class="pct-text" id="pct-text">0 / 0 (0%)</div>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom">
+
+      <!-- Results table -->
+      <div class="results-panel">
+        <div class="panel-header">
+          <span>Eredmények</span>
+          <button class="btn-clear" onclick="clearResults()">Törlés</button>
+        </div>
+        <div class="table-header">
+          <span>Cikkszám</span>
+          <span>Elérhetőség</span>
+          <span style="text-align:center">Ár</span>
+        </div>
+        <div class="table-body" id="table-body">
+          <!-- rows injected here -->
+        </div>
+      </div>
+
+      <!-- Right: log + manual -->
+      <div class="right-side">
+        <div class="log-panel">
+          <div class="panel-header">
+            <span>Napló</span>
+          </div>
+          <div class="log-body" id="log-body"></div>
+        </div>
+        <div class="manual-panel">
+          <div class="panel-header">
+            <span>Kézi cikkszámok</span>
+          </div>
+          <textarea id="manual-codes" placeholder="Soronként 1 cikkszám..."></textarea>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SETTINGS OVERLAY -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="overlay" id="settings-overlay" onclick="closeSettingsIfBg(event)">
+  <div class="settings-modal">
+    <div class="modal-header">
+      <div class="modal-title">⚙ Beállítások</div>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-group">
+        <h3>Megjelenés</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Téma</div>
+          </div>
+          <select id="s-theme" style="width:130px">
+            <option value="dark">🌙 Sötét</option>
+            <option value="light">☀️ Világos</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Nyelv</div>
+          </div>
+          <select id="s-lang" style="width:160px">
+            <option value="hu">🇭🇺 Magyar</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="sk">🇸🇰 Slovenčina</option>
+          </select>
+        </div>
+      </div>
+      <div class="setting-group">
+        <h3>Frissítések</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Automatikus frissítés keresése</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="s-auto-update" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Ellenőrzés gyakorisága</div>
+          </div>
+          <select id="s-upd-interval" style="width:130px">
+            <option value="on_start">Indításkor</option>
+            <option value="daily">Naponta</option>
+            <option value="never">Soha</option>
+          </select>
+        </div>
+      </div>
+      <div class="setting-group">
+        <h3>Alapértékek</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Várakozás kérések közt (mp)</div>
+          </div>
+          <input type="text" id="s-sleep" style="width:80px;text-align:center">
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Excel mentés ennyinként</div>
+          </div>
+          <input type="text" id="s-save-every" style="width:80px;text-align:center">
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Ár lekérés</div>
+            <div class="setting-desc">Árakat is letölti a keresés során</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="s-show-price" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="setting-group">
+        <h3>Duplikátumok</h3>
+        <div class="setting-row">
+          <div><div class="setting-label">Auto eltávolítás</div></div>
+          <label class="toggle"><input type="checkbox" id="s-auto-rm"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Ne kérdezzen rá</div></div>
+          <label class="toggle"><input type="checkbox" id="s-dont-ask"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Duplikátumok mentése TXT-be</div></div>
+          <label class="toggle"><input type="checkbox" id="s-save-dup" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="closeSettings()">Mégse</button>
+      <button class="btn-modal-save" onclick="saveSettings()">Mentés</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unknown result dialog -->
+<div class="overlay" id="unknown-overlay">
+  <div class="dialog-modal">
+    <div class="dialog-hdr">
+      <span class="dialog-icon">❓</span>
+      <div>
+        <div class="dialog-title">Ismeretlen találat</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">Cikkszám: <span id="unk-code"></span></div>
+      </div>
+    </div>
+    <div class="dialog-body">
+      <p style="font-size:13px;color:var(--text2)">A cikkszám eredménye nem egyértelmű. Mit tegyek?</p>
+      <div class="checkbox-row" style="margin-top:12px">
+        <input type="checkbox" id="unk-apply-all">
+        <label for="unk-apply-all" style="color:var(--text2)">Alkalmazza a többi ismeretlen találatra is</label>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-secondary" onclick="resolveUnknown('skip')">Kihagyás</button>
+      <button class="btn btn-stop" onclick="resolveUnknown('stop')">Leállítás</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  running: false, canContinue: false,
+  stats: { van:0, nincs:0, kulso:0, ism:0 },
+  unknownMode: null,
+  unknownResolve: null,
+  updateAsset: null, updateVersion: null,
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  // Login toggle
+  document.getElementById('login-required').addEventListener('change', toggleLogin);
+  toggleLogin();
+
+  // Load config
+  try {
+    const cfg = await py('get_config');
+    if (cfg) applyConfig(cfg);
+  } catch(e) {}
+
+  // Check update after delay
+  setTimeout(checkUpdateSilent, 3000);
+});
+
+// ── Python bridge ──────────────────────────────────────────────────────────
+async function py(method, ...args) {
+  if (window.pywebview && window.pywebview.api) {
+    return await window.pywebview.api[method](...args);
+  }
+  console.log(`[py mock] ${method}`, args);
+  return null;
+}
+
+// ── Callbacks from Python ──────────────────────────────────────────────────
+function onLog(msg) {
+  const el = document.getElementById('log-body');
+  const line = document.createElement('div');
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function onStatus(msg) {
+  document.getElementById('status-text').textContent = msg;
+}
+
+function onProgress(cur, tot) {
+  const pct = tot ? Math.round(cur/tot*100) : 0;
+  document.getElementById('pct-text').textContent = `${cur} / ${tot} (${pct}%)`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-fill').classList.toggle('active', pct > 0 && pct < 100);
+  document.getElementById('s-done').textContent = cur;
+}
+
+function onResult(code, avail, price) {
+  if (avail === 'Van')           state.stats.van++;
+  else if (avail === 'Nincs')    state.stats.nincs++;
+  else if (avail === 'Külső raktár') state.stats.kulso++;
+  else                           state.stats.ism++;
+  updateStatCards();
+  addTableRow(code, avail, price);
+}
+
+function onLoginDetected(required) {
+  document.getElementById('login-required').checked = required;
+  toggleLogin();
+  const badge = document.getElementById('detect-badge');
+  badge.style.display = 'inline-flex';
+  badge.style.color = required ? 'var(--amber)' : 'var(--green)';
+  badge.textContent = required ? '🔒 Bejelentkezés szükséges (auto)' : '🔓 Nem szükséges (auto)';
+}
+
+function onUnknown(code) {
+  return new Promise(resolve => {
+    state.unknownResolve = resolve;
+    document.getElementById('unk-code').textContent = code;
+    document.getElementById('unk-apply-all').checked = false;
+    document.getElementById('unknown-overlay').classList.add('show');
+  });
+}
+
+function onDone() {
+  onStatus('Kész ✓');
+  state.running = false; state.canContinue = false;
+  updateStartBtn();
+}
+
+function onUpdateAvailable(version, asset) {
+  state.updateVersion = version; state.updateAsset = asset;
+  document.getElementById('update-version').textContent = `Új verzió: ${version}`;
+  document.getElementById('update-banner').classList.add('show');
+}
+
+// ── UI Actions ─────────────────────────────────────────────────────────────
+function toggleLogin() {
+  const card = document.getElementById('login-card');
+  card.style.display = document.getElementById('login-required').checked ? 'block' : 'none';
+}
+
+async function detectLogin() {
+  const url = document.getElementById('url').value.trim();
+  if (!url || url === 'https://') return;
+  const badge = document.getElementById('detect-badge');
+  badge.style.display = 'inline-flex';
+  badge.style.color = 'var(--text3)';
+  badge.textContent = '⟳ Detektálás...';
+  try {
+    const required = await py('detect_login', url);
+    onLoginDetected(required);
+  } catch(e) {
+    badge.textContent = '⚠ Nem sikerült ellenőrizni';
+  }
+}
+
+async function browseTxt() {
+  const path = await py('browse_txt');
+  if (path) document.getElementById('txt-path').value = path;
+}
+
+async function browseXlsx() {
+  const path = await py('browse_xlsx');
+  if (path) document.getElementById('xlsx-path').value = path;
+}
+
+function startAction() {
+  if (state.canContinue) runProcess(true);
+  else runProcess(false);
+}
+
+async function runProcess(skipDup) {
+  const config = {
+    url:        document.getElementById('url').value.trim(),
+    username:   document.getElementById('username').value.trim(),
+    password:   document.getElementById('password').value.trim(),
+    req_login:  document.getElementById('login-required').checked,
+    txt_path:   document.getElementById('txt-path').value.trim(),
+    xlsx_path:  document.getElementById('xlsx-path').value.trim(),
+    sleep_s:    parseFloat(document.getElementById('sleep').value) || 0.8,
+    save_every: parseInt(document.getElementById('save-every').value) || 100,
+    sort_order: document.getElementById('sort-order').value,
+    auto_rm:    document.getElementById('auto-rm').checked,
+    save_dup:   document.getElementById('save-dup').checked,
+    manual:     document.getElementById('manual-codes').value.trim(),
+    skip_dup:   skipDup,
+  };
+
+  resetStats();
+  state.running = true; state.canContinue = true;
+  updateStartBtn();
+  await py('start_process', config);
+}
+
+function stopProcess() {
+  py('stop_process');
+  state.canContinue = true;
+  updateStartBtn();
+}
+
+function restartProcess() {
+  py('restart_process');
+  state.running = false; state.canContinue = false;
+  resetStats();
+  updateStartBtn();
+}
+
+async function checkUpdate() {
+  onLog('[--] Frissítés keresése...');
+  await py('check_update');
+}
+
+async function checkUpdateSilent() {
+  try { await py('check_update'); } catch(e) {}
+}
+
+function clearLog()     { document.getElementById('log-body').innerHTML = ''; }
+function clearResults() {
+  document.getElementById('table-body').innerHTML = '';
+  resetStats();
+}
+
+function dismissBanner() { document.getElementById('update-banner').classList.remove('show'); }
+
+async function doUpdate() {
+  dismissBanner();
+  if (state.updateAsset) await py('do_update', state.updateAsset, state.updateVersion);
+}
+
+function resolveUnknown(action) {
+  const applyAll = document.getElementById('unk-apply-all').checked;
+  document.getElementById('unknown-overlay').classList.remove('show');
+  if (state.unknownResolve) { state.unknownResolve({ action, applyAll }); state.unknownResolve = null; }
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('settings-overlay').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+function closeSettingsIfBg(e) {
+  if (e.target === document.getElementById('settings-overlay')) closeSettings();
+}
+async function saveSettings() {
+  const cfg = {
+    theme:           document.getElementById('s-theme').value,
+    language:        document.getElementById('s-lang').value,
+    auto_update:     document.getElementById('s-auto-update').checked,
+    update_interval: document.getElementById('s-upd-interval').value,
+    sleep_seconds:   parseFloat(document.getElementById('s-sleep').value) || 0.8,
+    save_every:      parseInt(document.getElementById('s-save-every').value) || 100,
+    show_price:      document.getElementById('s-show-price').checked,
+    auto_rm_dup:     document.getElementById('s-auto-rm').checked,
+    dont_ask_dup:    document.getElementById('s-dont-ask').checked,
+    save_dup_txt:    document.getElementById('s-save-dup').checked,
+  };
+  await py('save_config', cfg);
+  closeSettings();
+}
+
+function applyConfig(cfg) {
+  if (cfg.sleep_seconds) { document.getElementById('sleep').value = cfg.sleep_seconds; document.getElementById('s-sleep').value = cfg.sleep_seconds; }
+  if (cfg.save_every)    { document.getElementById('save-every').value = cfg.save_every; document.getElementById('s-save-every').value = cfg.save_every; }
+  if (cfg.sort_order)      document.getElementById('sort-order').value = cfg.sort_order;
+  if (cfg.auto_rm_dup)     document.getElementById('auto-rm').checked = cfg.auto_rm_dup;
+  if (cfg.save_dup_txt !== undefined) document.getElementById('save-dup').checked = cfg.save_dup_txt;
+  if (cfg.last_url)        document.getElementById('url').value = cfg.last_url;
+  if (cfg.last_xlsx)       document.getElementById('xlsx-path').value = cfg.last_xlsx;
+  if (cfg.last_txt)        document.getElementById('txt-path').value = cfg.last_txt;
+  if (cfg.language)        document.getElementById('s-lang').value = cfg.language;
+  if (cfg.theme)           document.getElementById('s-theme').value = cfg.theme;
+  if (cfg.auto_update !== undefined) document.getElementById('s-auto-update').checked = cfg.auto_update;
+  if (cfg.update_interval) document.getElementById('s-upd-interval').value = cfg.update_interval;
+  if (cfg.show_price !== undefined) document.getElementById('s-show-price').checked = cfg.show_price;
+  if (cfg.auto_rm_dup !== undefined) document.getElementById('s-auto-rm').checked = cfg.auto_rm_dup;
+  if (cfg.dont_ask_dup !== undefined) document.getElementById('s-dont-ask').checked = cfg.dont_ask_dup;
+  if (cfg.save_dup_txt !== undefined) document.getElementById('s-save-dup').checked = cfg.save_dup_txt;
+  if (cfg.app_version) document.getElementById('app-version').textContent = 'v' + cfg.app_version;
+  toggleLogin();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function updateStartBtn() {
+  const btn = document.getElementById('btn-start');
+  btn.textContent = state.canContinue ? '▶  Folytatás' : '▶  Indítás';
+}
+
+function resetStats() {
+  state.stats = { van:0, nincs:0, kulso:0, ism:0 };
+  ['s-done','s-van','s-nincs','s-kulso'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('s-total').textContent = '—';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('pct-text').textContent = '0 / 0 (0%)';
+}
+
+function updateStatCards() {
+  document.getElementById('s-van').textContent   = state.stats.van;
+  document.getElementById('s-nincs').textContent = state.stats.nincs;
+  document.getElementById('s-kulso').textContent = state.stats.kulso;
+}
+
+function addTableRow(code, avail, price) {
+  const body = document.getElementById('table-body');
+  const badgeClass = {
+    'Van': 'avail-van', 'Nincs': 'avail-nincs',
+    'Külső raktár': 'avail-kulso'
+  }[avail] || 'avail-ism';
+  const dot = avail !== 'Ismeretlen' ? '●' : '○';
+
+  const row = document.createElement('div');
+  row.className = 'table-row fade-in';
+  row.innerHTML = `
+    <div class="code-cell">${escHtml(code)}</div>
+    <div><span class="avail-badge ${badgeClass}">${dot} ${escHtml(avail)}</span></div>
+    <div class="price-cell">${escHtml(price || '—')}</div>
+  `;
+  body.appendChild(row);
+  body.scrollTop = body.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
