@@ -1041,7 +1041,8 @@ class StatCard(ctk.CTkFrame):
 
 class ResultTable(ctk.CTkScrollableFrame):
     def __init__(self,parent,**kw):
-        super().__init__(parent,fg_color="transparent",**kw)
+        kw.setdefault("fg_color","transparent")
+        super().__init__(parent,**kw)
         self.grid_columnconfigure(0,weight=3); self.grid_columnconfigure(1,weight=2)
         self.grid_columnconfigure(2,weight=2); self._rows=0; self._draw_header()
     def _draw_header(self):
