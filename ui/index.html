@@ -202,7 +202,7 @@
   select option { background: #1a0f3c; }
 
   /* Action buttons */
-  .action-grid { display: grid; gap: 8px; }
+  /* action-grid now defined above with flex layout */
   .btn {
     padding: 11px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
     cursor: pointer; border: none; transition: all 0.2s; display: flex;
@@ -225,7 +225,7 @@
   .btn-secondary { background: var(--glass); color: var(--text2); border: 1px solid var(--glass-border); }
   .btn-secondary:hover { background: var(--glass2); color: var(--text); }
 
-  .btn-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
 
   /* ── Main panel ───────────────────────────────────────────────────────── */
   .main {
@@ -323,6 +323,120 @@
     color: var(--text3); cursor: pointer;
   }
   .panel-header .btn-clear:hover { color: var(--text); background: var(--glass2); }
+
+  /* ── Tooltip (?-ikon) ────────────────────────────────────────────────── */
+  .tip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; border-radius: 50%; font-size: 9px; font-weight: 700;
+    background: var(--glass2); border: 1px solid var(--glass-border);
+    color: var(--text3); cursor: help; flex-shrink: 0;
+    position: relative; margin-left: 5px; vertical-align: middle;
+  }
+  .tip::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #1a0f3c; border: 1px solid var(--glass-border);
+    color: var(--text); font-size: 11px; font-weight: 400; line-height: 1.45;
+    padding: 7px 11px; border-radius: 8px; white-space: pre-wrap;
+    min-width: 200px; max-width: 260px; pointer-events: none;
+    opacity: 0; transition: opacity 0.15s; z-index: 9999;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .tip:hover::after { opacity: 1; }
+
+  /* ── Action buttons ───────────────────────────────────────────────────── */
+  .action-grid { display: flex; flex-direction: column; gap: 7px; }
+  .action-main { width: 100%; }
+  .action-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+
+  /* ── File source loader ─────────────────────────────────────────────── */
+  #drop-zone {
+    border: 1.5px dashed var(--glass-border); border-radius: 10px;
+    padding: 14px 10px; text-align: center; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 8px; position: relative;
+    background: rgba(123,92,240,0.03);
+  }
+  #drop-zone:hover, #drop-zone.drag-over {
+    border-color: var(--accent); background: rgba(123,92,240,0.1);
+  }
+  #drop-zone.has-file {
+    border-color: var(--green); border-style: solid;
+    background: rgba(34,197,94,0.06);
+  }
+  .dz-icon { font-size: 20px; margin-bottom: 4px; }
+  .dz-text { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .dz-sub  { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .dz-loaded {
+    font-size: 11px; color: var(--green); margin-top: 6px;
+    font-family: Consolas, monospace; word-break: break-all;
+  }
+
+  .fmt-btns {
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 5px;
+  }
+  .fmt-btn {
+    padding: 6px 8px; border-radius: 7px; font-size: 12px; font-weight: 600;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .fmt-btn:hover {
+    background: rgba(123,92,240,0.2); border-color: var(--accent); color: var(--text);
+  }
+  .fmt-btn:active { transform: scale(0.95); }
+  .fmt-clear:hover { background: rgba(239,68,68,0.15) !important; border-color: var(--red) !important; }
+
+  /* Export toolbar buttons */
+  .exp-btn {
+    font-size: 11px; padding: 5px 11px; border-radius: 7px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    color: var(--text2); cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; font-weight: 500;
+  }
+  .exp-btn:hover {
+    background: rgba(123,92,240,0.2); border-color: var(--accent);
+    color: var(--text); transform: translateY(-1px);
+  }
+  .exp-btn:active { transform: scale(0.96); }
+  .exp-clear { color: var(--text3) !important; }
+  .exp-clear:hover { background: rgba(239,68,68,0.15) !important; border-color: var(--red) !important; }
+
+  /* Toast notification */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--glass2); border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px); border-radius: 10px;
+    padding: 10px 18px; font-size: 13px; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    animation: slideUp 0.25s ease; pointer-events: none;
+  }
+  @keyframes slideUp {
+    from { opacity:0; transform: translateY(12px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* Print styles — only table visible */
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      position: fixed; inset: 0; padding: 20px;
+      background: white; color: black;
+    }
+    .print-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .print-table th {
+      background: #1a0f3c; color: white; padding: 8px 12px;
+      text-align: left; font-weight: 600;
+    }
+    .print-table td { padding: 7px 12px; border-bottom: 1px solid #eee; }
+    .print-table tr:nth-child(even) td { background: #f9f9ff; }
+    .print-van   { color: #16a34a; font-weight: 600; }
+    .print-nincs { color: #dc2626; font-weight: 600; }
+    .print-kulso { color: #d97706; font-weight: 600; }
+    .print-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: #1a0f3c; }
+    .print-meta  { font-size: 11px; color: #666; margin-bottom: 16px; }
+  }
 
   /* Results table */
   .table-header {
@@ -499,7 +613,7 @@
       <img id="logo-img" src="../assets/logo.png" onerror="this.style.display='none'">
       <div class="logo-text">
         <div class="logo-name"><span class="logo-cikk">Cikk</span><span class="logo-checker">Checker</span></div>
-        <div class="logo-ver" id="app-version">v3.0.0</div>
+        <div class="logo-ver" id="app-version" title="Verzió betöltése...">...</div>
       </div>
       <div class="logo-gear" onclick="openSettings()" title="Beállítások">⚙</div>
     </div>
@@ -551,11 +665,11 @@
     <div class="sb-card">
       <div class="row2">
         <div class="sb-field">
-          <label class="sb-label" data-i18n="wait_sec">Várakozás (mp)</label>
+          <label class="sb-label" data-i18n="wait_sec">Lekérések közt (mp)</label>
           <input type="text" id="sleep" value="0.8">
         </div>
         <div class="sb-field">
-          <label class="sb-label" data-i18n="save_every">Mentés ennyinként</label>
+          <label class="sb-label" data-i18n="save_every">Mentési köz (db)</label>
           <input type="text" id="save-every" value="100">
         </div>
       </div>
@@ -570,10 +684,14 @@
         </select>
       </div>
       <div class="checkbox-row">
-        <input type="checkbox" id="auto-rm"> <label for="auto-rm" data-i18n="auto_rm_dup">Auto duplikátum eltávolítás</label>
+        <input type="checkbox" id="auto-rm">
+        <label for="auto-rm">Auto duplikátum eltávolítás</label>
+        <span class="tip" data-tip="Azonos cikkszámokból csak&#10;egyet hagy meg automatikusan.">?</span>
       </div>
       <div class="checkbox-row" style="margin-top:6px">
-        <input type="checkbox" id="save-dup" checked> <label for="save-dup" data-i18n="save_dup_txt">Duplikátumok TXT-be</label>
+        <input type="checkbox" id="save-dup" checked>
+        <label for="save-dup">Duplikátumok TXT-be</label>
+        <span class="tip" data-tip="Az eltávolított duplikátumokat&#10;menti a duplicates.txt fájlba.">?</span>
       </div>
     </div>
 
@@ -581,13 +699,12 @@
     <div class="sb-section" data-i18n="s_actions">MŰVELETEK</div>
     <div class="sb-card">
       <div class="action-grid">
-        <button class="btn btn-start" id="btn-start" onclick="startAction()">▶&nbsp; Indítás</button>
-        <div class="btn-row2">
-          <button class="btn btn-stop"    onclick="stopProcess()">⏹ Stop</button>
-          <button class="btn btn-restart" onclick="restartProcess()">↺ Újra</button>
+        <button class="btn btn-start action-main" id="btn-start" onclick="startAction()">▶  Indítás</button>
+        <div class="action-row2">
+          <button class="btn btn-stop"    onclick="stopProcess()" title="Leállítja a futó folyamatot">⏹  Stop</button>
+          <button class="btn btn-restart" onclick="restartProcess()" title="Újraindítja nulláról">↺  Újra</button>
         </div>
-        <button class="btn btn-secondary" onclick="checkUpdate()">🔄 Frissítés keresése</button>
-        <button class="btn btn-secondary" onclick="clearLog()">🗑 Log törlése</button>
+        <button class="btn btn-secondary" onclick="clearLog()" style="opacity:0.7">🗑  Log törlése</button>
       </div>
     </div>
 
@@ -613,6 +730,7 @@
           <span id="upd-pct" style="font-size:10px;color:var(--text3);margin-top:3px;display:block">0%</span>
         </div>
       </div>
+      <button class="btn-update-now" onclick="doUpdate()" id="upd-now-btn">⬇ Frissítés</button>
       <button class="btn-dismiss" onclick="dismissBanner()" id="upd-dismiss-btn">✕</button>
     </div>
 
@@ -656,9 +774,15 @@
 
       <!-- Results table -->
       <div class="results-panel">
-        <div class="panel-header">
-          <span>Eredmények</span>
-          <button class="btn-clear" onclick="clearResults()">Törlés</button>
+        <div class="panel-header" style="flex-wrap:wrap;gap:8px;padding:10px 14px">
+          <span style="font-size:13px;font-weight:600">Eredmények</span>
+          <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap">
+            <button class="exp-btn" onclick="exportCopy()"    title="Másolás vágólapra">📋 Másolás</button>
+            <button class="exp-btn" onclick="exportCSV()"     title="CSV letöltés">📄 CSV</button>
+            <button class="exp-btn" onclick="exportExcel()"   title="Excel fájl mentése">📊 Excel</button>
+            <button class="exp-btn" onclick="exportPDF()"     title="PDF mentés / nyomtatás">🖨 PDF</button>
+            <button class="exp-btn exp-clear" onclick="clearResults()" title="Törlés">✕</button>
+          </div>
         </div>
         <div class="table-header">
           <span>Cikkszám</span>
@@ -748,21 +872,23 @@
       <div class="setting-group">
         <h3>Alapértékek</h3>
         <div class="setting-row">
-          <div>
-            <div class="setting-label">Várakozás kérések közt (mp)</div>
+          <div style="display:flex;align-items:center">
+            <div class="setting-label">Lekérések közt (mp)</div>
+            <span class="tip" data-tip="Ennyi másodpercet vár az app&#10;két cikkszám lekérdezése között.&#10;Túl alacsony érték terhelhet&#10;a szervert (ajánlott: 0.5–2).">?</span>
           </div>
           <input type="text" id="s-sleep" style="width:80px;text-align:center">
         </div>
         <div class="setting-row">
-          <div>
-            <div class="setting-label">Excel mentés ennyinként</div>
+          <div style="display:flex;align-items:center">
+            <div class="setting-label">Mentési köz (db)</div>
+            <span class="tip" data-tip="Minden N. cikkszám után elmenti&#10;az addig gyűjtött eredményeket CSV-be.&#10;Biztonsági mentés, ha az app összeomlik.&#10;Pl. 100 = minden 100. elemnel ment.">?</span>
           </div>
           <input type="text" id="s-save-every" style="width:80px;text-align:center">
         </div>
         <div class="setting-row">
-          <div>
+          <div style="display:flex;align-items:center">
             <div class="setting-label">Ár lekérés</div>
-            <div class="setting-desc">Árakat is letölti a keresés során</div>
+            <span class="tip" data-tip="Ha be van kapcsolva, a találati&#10;oldalról az árat is megpróbálja&#10;kiolvasni és az eredmény táblában&#10;megjeleníteni.">?</span>
           </div>
           <label class="toggle">
             <input type="checkbox" id="s-show-price" checked>
@@ -773,15 +899,24 @@
       <div class="setting-group">
         <h3>Duplikátumok</h3>
         <div class="setting-row">
-          <div><div class="setting-label">Auto eltávolítás</div></div>
+          <div style="display:flex;align-items:center">
+            <div class="setting-label">Auto eltávolítás</div>
+            <span class="tip" data-tip="Ha ugyanaz a cikkszám többször&#10;szerepel a listában, csak egyet tart&#10;meg belőle. A többi törlődik.">?</span>
+          </div>
           <label class="toggle"><input type="checkbox" id="s-auto-rm"><span class="toggle-slider"></span></label>
         </div>
         <div class="setting-row">
-          <div><div class="setting-label">Ne kérdezzen rá</div></div>
+          <div style="display:flex;align-items:center">
+            <div class="setting-label">Ne kérdezzen rá</div>
+            <span class="tip" data-tip="Ha be van kapcsolva, nem ugrik fel&#10;párbeszédablak duplikátumok esetén.&#10;Az automatikus beállítást alkalmazza&#10;(eltávolítás / megtartás).">?</span>
+          </div>
           <label class="toggle"><input type="checkbox" id="s-dont-ask"><span class="toggle-slider"></span></label>
         </div>
         <div class="setting-row">
-          <div><div class="setting-label">Duplikátumok mentése TXT-be</div></div>
+          <div style="display:flex;align-items:center">
+            <div class="setting-label">Duplikátumok mentése TXT-be</div>
+            <span class="tip" data-tip="Az eltávolított duplikátumok listáját&#10;külön TXT fájlba menti az Excel&#10;mellé (duplicates.txt).">?</span>
+          </div>
           <label class="toggle"><input type="checkbox" id="s-save-dup" checked><span class="toggle-slider"></span></label>
         </div>
       </div>
@@ -908,9 +1043,26 @@ function onDone() {
 }
 
 function onUpdateAvailable(version, asset) {
-  // Python will auto-download; just log here
-  // The banner will appear via onUpdateDownloading()
-  onLog(`[!!] Új GitHub release észlelve: v${version} — letöltés indul automatikusan`);
+  state.updateVersion = version;
+  state.updateAsset   = asset;
+  // Show banner — user decides whether to download
+  const banner = document.getElementById('update-banner');
+  document.getElementById('update-version').textContent = `Új verzió elérhető: v${version}`;
+  document.getElementById('update-icon').textContent = '🚀';
+  document.getElementById('upd-progress-wrap').style.display = 'none';
+  document.getElementById('upd-dismiss-btn').style.display = 'block';
+  // Show the "Frissítés" button
+  document.getElementById('upd-now-btn').style.display = 'block';
+  banner.classList.add('show');
+  onLog(`[!!] Új verzió elérhető: v${version} — kattints a Frissítés gombra a letöltéshez`);
+}
+
+async function doUpdate() {
+  if (!state.updateAsset) return;
+  // Hide the update button, show progress
+  document.getElementById('upd-now-btn').style.display = 'none';
+  document.getElementById('upd-dismiss-btn').style.display = 'none';
+  await py('do_update', state.updateAsset, state.updateVersion);
 }
 
 // ── UI Actions ─────────────────────────────────────────────────────────────
@@ -934,9 +1086,94 @@ async function detectLogin() {
   }
 }
 
-async function browseTxt() {
-  const path = await py('browse_txt');
-  if (path) document.getElementById('txt-path').value = path;
+// ── File source loader ────────────────────────────────────────────────────
+let _sourceType = 'txt';   // 'txt' | 'csv' | 'xlsx'
+let _sourcePath = '';
+let _sourceData = [];      // loaded codes array
+
+async function browseFile(type) {
+  _sourceType = type;
+  const path = await py('browse_file', type);
+  if (!path) return;
+  await loadFile(path, type, 0);
+}
+
+async function loadFile(path, type, colIndex) {
+  _sourcePath = path;
+  document.getElementById('txt-path').value = path;
+
+  const result = await py('parse_file', path, type, colIndex);
+  if (!result) { showToast('Nem sikerült beolvasni a fájlt', '✗'); return; }
+
+  _sourceData = result.codes;
+  const filename = path.split(/[\/]/).pop();
+
+  // Update drop zone
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.getElementById('dz-icon') && (document.getElementById('dz-icon').textContent = '✅');
+  document.querySelector('.dz-text').textContent = filename;
+  document.querySelector('.dz-sub').textContent = `${result.codes.length} cikkszám beolvasva`;
+  document.querySelector('.dz-sub').style.color = 'var(--green)';
+  const loaded = document.getElementById('dz-loaded');
+  loaded.style.display = 'block';
+  loaded.textContent = `Forrás: ${type.toUpperCase()}`;
+
+  // Show column picker for CSV/Excel
+  const picker = document.getElementById('col-picker');
+  if (type === 'csv' || type === 'xlsx') {
+    picker.style.display = 'block';
+    document.getElementById('col-select').value = colIndex;
+    if (result.preview) {
+      document.getElementById('col-preview').textContent =
+        'Előnézet: ' + result.preview.slice(0,4).join(', ') + (result.preview.length>4?'...':'');
+    }
+  } else {
+    picker.style.display = 'none';
+  }
+
+  showToast(`${result.codes.length} cikkszám betöltve (${type.toUpperCase()})`, '✅');
+}
+
+async function reloadWithCol() {
+  const col = parseInt(document.getElementById('col-select').value);
+  if (_sourcePath) await loadFile(_sourcePath, _sourceType, col);
+}
+
+function clearSourceFile() {
+  _sourceData = []; _sourcePath = ''; _sourceType = 'txt';
+  document.getElementById('txt-path').value = '';
+  const dz = document.getElementById('drop-zone');
+  dz.classList.remove('has-file');
+  document.querySelector('.dz-text').textContent = 'Húzd ide a fájlt';
+  document.querySelector('.dz-sub').textContent = 'vagy válaszd ki az alábbi gombok egyikével';
+  document.querySelector('.dz-sub').style.color = '';
+  document.getElementById('dz-loaded').style.display = 'none';
+  document.getElementById('col-picker').style.display = 'none';
+  showToast('Forrás törölve');
+}
+
+// ── Drag & drop ────────────────────────────────────────────────────────────
+function dzDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function dzDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+async function dzDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const files = e.dataTransfer.files;
+  if (!files.length) return;
+  const file = files[0];
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const type = ext === 'xlsx' || ext === 'xls' ? 'xlsx'
+             : ext === 'csv' ? 'csv' : 'txt';
+  // Pass file path to Python via drag-drop path API
+  const path = await py('drop_file', file.name, type);
+  if (path) await loadFile(path, type, 0);
+  else showToast('Húzd a fájlt közvetlenül a programra', '⚠');
 }
 
 async function browseXlsx() {
@@ -956,6 +1193,7 @@ async function runProcess(skipDup) {
     password:   document.getElementById('password').value.trim(),
     req_login:  document.getElementById('login-required').checked,
     txt_path:   document.getElementById('txt-path').value.trim(),
+    preloaded:  _sourceData,
     xlsx_path:  document.getElementById('xlsx-path').value.trim(),
     sleep_s:    parseFloat(document.getElementById('sleep').value) || 0.8,
     save_every: parseInt(document.getElementById('save-every').value) || 100,
@@ -1069,6 +1307,14 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme || 'dark');
 }
 
+function toggleManualUpdateBtn() {
+  const autoOn = document.getElementById('s-auto-update').checked;
+  const manualRow   = document.getElementById('manual-update-row');
+  const intervalRow = document.getElementById('upd-interval-row');
+  if (manualRow)   manualRow.style.display   = autoOn ? 'none' : 'flex';
+  if (intervalRow) intervalRow.style.display = autoOn ? 'flex' : 'none';
+}
+
 function applyConfig(cfg) {
   if (cfg.theme) applyTheme(cfg.theme);
   if (cfg.sleep_seconds) { document.getElementById('sleep').value = cfg.sleep_seconds; document.getElementById('s-sleep').value = cfg.sleep_seconds; }
@@ -1078,16 +1324,29 @@ function applyConfig(cfg) {
   if (cfg.save_dup_txt !== undefined) document.getElementById('save-dup').checked = cfg.save_dup_txt;
   if (cfg.last_url)        document.getElementById('url').value = cfg.last_url;
   if (cfg.last_xlsx)       document.getElementById('xlsx-path').value = cfg.last_xlsx;
-  if (cfg.last_txt)        document.getElementById('txt-path').value = cfg.last_txt;
+  if (cfg.last_txt) {
+    document.getElementById('txt-path').value = cfg.last_txt;
+    // Auto-reload last file
+    if (cfg.last_txt_type && cfg.last_txt) {
+      loadFile(cfg.last_txt, cfg.last_txt_type || 'txt', 0);
+    }
+  }
   if (cfg.language)        document.getElementById('s-lang').value = cfg.language;
   if (cfg.theme)           document.getElementById('s-theme').value = cfg.theme;
-  if (cfg.auto_update !== undefined) document.getElementById('s-auto-update').checked = cfg.auto_update;
+  if (cfg.auto_update !== undefined) {
+    document.getElementById('s-auto-update').checked = cfg.auto_update;
+    toggleManualUpdateBtn();
+  }
   if (cfg.update_interval) document.getElementById('s-upd-interval').value = cfg.update_interval;
   if (cfg.show_price !== undefined) document.getElementById('s-show-price').checked = cfg.show_price;
   if (cfg.auto_rm_dup !== undefined) document.getElementById('s-auto-rm').checked = cfg.auto_rm_dup;
   if (cfg.dont_ask_dup !== undefined) document.getElementById('s-dont-ask').checked = cfg.dont_ask_dup;
   if (cfg.save_dup_txt !== undefined) document.getElementById('s-save-dup').checked = cfg.save_dup_txt;
-  if (cfg.app_version) document.getElementById('app-version').textContent = 'v' + cfg.app_version;
+  if (cfg.app_version) {
+    const el = document.getElementById('app-version');
+    el.textContent = 'v' + cfg.app_version;
+    el.title = 'CikkChecker v' + cfg.app_version;
+  }
   toggleLogin();
 }
 
@@ -1134,5 +1393,8 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
+<!-- Hidden print area for PDF export -->
+<div id="print-area" style="display:none"></div>
+
 </body>
 </html>

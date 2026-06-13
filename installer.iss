@@ -1,5 +1,5 @@
 #define MyAppName "CikkChecker"
-#define MyAppVersion "3.0.0"
+#define MyAppVersion "0.0.0"
 #define MyAppPublisher "Sanyi7511"
 #define MyAppURL "https://github.com/Sanyi7511/CikkChecker-releases"
 #define MyAppExeName "CikkChecker.exe"

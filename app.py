@@ -140,13 +140,89 @@ class Api:
         ev.wait(timeout=30)
         return result[0]
 
-    def browse_txt(self):
+    def browse_file(self, filetype: str):
+        """Open file dialog for txt/csv/xlsx."""
+        type_map = {
+            "txt":  [("Text fájl", "*.txt"), ("Minden", "*.*")],
+            "csv":  [("CSV fájl", "*.csv"), ("Minden", "*.*")],
+            "xlsx": [("Excel fájl", "*.xlsx *.xls"), ("Minden", "*.*")],
+        }
+        filetypes = type_map.get(filetype, [("Minden", "*.*")])
         path = self._tk_dialog(lambda r: filedialog.askopenfilename(
-            parent=r, title="Cikkszám TXT",
-            filetypes=[("Text", "*.txt"), ("Minden", "*.*")]))
+            parent=r,
+            title=f"Cikkszám forrás megnyitása ({filetype.upper()})",
+            filetypes=filetypes))
         if path:
             self._cfg["last_txt"] = path
+            self._cfg["last_txt_type"] = filetype
+            save_config_file(self._cfg)
         return path or ""
+
+    def parse_file(self, path: str, filetype: str, col_index: int = 0):
+        """Parse codes from txt/csv/xlsx. Returns {codes, preview} or None."""
+        try:
+            codes = []
+            preview = []
+
+            if filetype == "txt":
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    codes = [l.strip() for l in f if l.strip()]
+
+            elif filetype == "csv":
+                import csv as _csv
+                # Try to detect delimiter
+                with open(path, encoding="utf-8-sig", errors="replace") as f:
+                    sample = f.read(2048)
+                dialect = _csv.Sniffer().sniff(sample, delimiters=",;	|")
+                with open(path, encoding="utf-8-sig", errors="replace", newline="") as f:
+                    reader = _csv.reader(f, dialect)
+                    rows = list(reader)
+                # Skip header if first cell looks like a header (non-numeric text)
+                start = 0
+                if rows and not any(c.isdigit() for c in (rows[0][col_index] if col_index < len(rows[0]) else "")):
+                    start = 1
+                codes   = [row[col_index].strip() for row in rows[start:] if col_index < len(row) and row[col_index].strip()]
+                preview = [row[col_index].strip() for row in rows[start:start+5] if col_index < len(row)]
+
+            elif filetype in ("xlsx", "xls"):
+                try:
+                    from openpyxl import load_workbook
+                    wb = load_workbook(path, read_only=True, data_only=True)
+                    ws = wb.active
+                    rows = list(ws.iter_rows(values_only=True))
+                    wb.close()
+                    # Skip header if first cell is text (not a code)
+                    start = 0
+                    if rows:
+                        first = str(rows[0][col_index] or "").strip()
+                        if first and not any(c.isdigit() for c in first):
+                            start = 1
+                    codes   = [str(row[col_index]).strip() for row in rows[start:]
+                               if col_index < len(row) and row[col_index] is not None
+                               and str(row[col_index]).strip()]
+                    preview = [str(row[col_index]).strip() for row in rows[start:start+5]
+                               if col_index < len(row) and row[col_index] is not None]
+                except ImportError:
+                    return {"error": "openpyxl nincs telepítve"}
+
+            # Deduplicate while preserving order
+            seen_set = set()
+            unique = [c for c in codes if not (c in seen_set or seen_set.add(c))]
+
+            return {"codes": unique, "preview": preview, "total": len(codes), "unique": len(unique)}
+
+        except Exception as e:
+            self._js(f"onLog({json.dumps(f'[ERR] Fájl parse hiba: {e}')})")
+            return None
+
+    def drop_file(self, filename: str, filetype: str):
+        """pywebview can't access drag-drop file paths directly — return None,
+        user should use the browse buttons instead."""
+        return None
+
+    def browse_txt(self):
+        """Legacy compat — redirect to browse_file."""
+        return self.browse_file("txt")
 
     def browse_xlsx(self):
         path = self._tk_dialog(lambda r: filedialog.asksaveasfilename(
@@ -197,10 +273,14 @@ class Api:
             self._js("onLog('[!!] Az Excel fájlnak .xlsx kiterjesztésűnek kell lennie.')")
             return False
 
-        # Collect codes
+        # Collect codes — preloaded takes priority over raw txt_path
+        preloaded = config.get("preloaded", [])
         codes = []
-        if txt_path and os.path.exists(txt_path):
-            with open(txt_path, encoding="utf-8") as f:
+        if preloaded:
+            codes = [str(c).strip() for c in preloaded if str(c).strip()]
+        elif txt_path and os.path.exists(txt_path):
+            # Fallback: read raw txt
+            with open(txt_path, encoding="utf-8", errors="replace") as f:
                 codes += [l.strip() for l in f if l.strip()]
         if manual:
             codes += [l.strip() for l in manual.splitlines() if l.strip()]
@@ -396,10 +476,15 @@ class Api:
             self._js("onLog('[--] Új verzió van, de a telepítő nem található.')")
             return
 
-        self._js(f"onLog('[!!] Új verzió észlelve: {latest} — automatikus letöltés indul...')")
-        # Auto-download immediately, no user prompt needed
+        self._js(f"onLog('[!!] Új verzió elérhető: v{latest}')")
+        # Show banner — wait for user to approve before downloading
+        self._js(f"onUpdateAvailable({json.dumps(latest)},{json.dumps(asset_url)})")
+
+    def do_update(self, asset_url: str, latest: str):
+        """Called from JS when user clicks the update button."""
         threading.Thread(target=self._dl_update,
                          args=(asset_url, latest), daemon=True).start()
+        return True
 
     def _dl_update(self, url, latest):
         self._js(f"onLog('[--] Frissítő letöltése: v{latest}')")
