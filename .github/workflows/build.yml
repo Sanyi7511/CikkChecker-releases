@@ -91,16 +91,32 @@ jobs:
           path: installer.iss
           arguments: /DMyAppVersion=${{ env.APP_VERSION }}
 
+      - name: Output mappa ellenorzese
+        shell: bash
+        run: |
+          echo "Output mappa tartalma:"
+          ls -la Output/ || echo "Output mappa nem letezik!"
+
+      - name: Installer atnevezese
+        shell: bash
+        run: |
+          # Find whatever .exe Inno Setup generated and rename it to a known name
+          FOUND=$(ls Output/*.exe 2>/dev/null | head -1)
+          if [ -z "$FOUND" ]; then
+            echo "ERROR: Nem talaltam .exe fajlt az Output mappaban!"
+            exit 1
+          fi
+          echo "Talalt fajl: $FOUND"
+          cp "$FOUND" "Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe"
+          echo "Atnevezve: Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe"
+
       - name: GitHub Release letrehozasa
         shell: bash
         run: |
-          gh release create "${{ env.RELEASE_TAG }}" \
-            "Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe" \
-            --title "CikkChecker ${{ env.RELEASE_TAG }}" \
-            --notes "## CikkChecker ${{ env.RELEASE_TAG }}
+          gh release create "${{ env.RELEASE_TAG }}"             "Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe"             --title "CikkChecker ${{ env.RELEASE_TAG }}"             --notes "## CikkChecker ${{ env.RELEASE_TAG }}
 
           ### Telepites
-          1. Töltsd le a \`CikkCheckerSetup.exe\` fajlt
+          1. Töltsd le a CikkCheckerSetup_${{ env.APP_VERSION }}.exe fajlt
           2. Futtasd telepitokent — Kesz!
 
           ### Automatikus frissites
