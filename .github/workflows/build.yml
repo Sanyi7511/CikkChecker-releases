@@ -1,0 +1,96 @@
+name: Build CikkChecker Installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Verzio (pl. v3.0.0)'
+        required: true
+        default: 'v3.0.0'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Tag es verzio beallitasa
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
+
+      - name: Tag letrehozasa (kezzel inditasnal)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ github.event.inputs.version }}"
+          git push origin "${{ github.event.inputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python telepitese
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Rust telepitese
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "checker_core_src -> target"
+
+      - name: checker_core.exe forditasa
+        shell: cmd
+        run: |
+          cd checker_core_src
+          cargo build --release
+          copy target\release\checker_core.exe ..\checker_core.exe
+
+      - name: Python csomagok + PyInstaller
+        shell: cmd
+        run: pip install customtkinter pillow openpyxl requests pystray pyinstaller
+
+      - name: app.exe buildelese (PyInstaller)
+        shell: cmd
+        run: |
+          pyinstaller --onefile --noconsole --name "CikkChecker" --icon "assets\icon.ico" app.py
+          copy dist\CikkChecker.exe CikkChecker_app.exe
+
+      - name: Inno Setup telepito
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: installer.iss
+
+      - name: GitHub Release
+        shell: bash
+        run: |
+          gh release create "${{ env.RELEASE_TAG }}" \
+            "Output/CikkCheckerSetup.exe" \
+            --title "CikkChecker ${{ env.RELEASE_TAG }}" \
+            --notes "## CikkChecker ${{ env.RELEASE_TAG }}
+
+          ### Telepites
+          1. Töltsd le a CikkCheckerSetup.exe fajlt
+          2. Futtasd telepitokent
+          3. Kesz - asztali parancsikonbol inditható
+
+          ### Rendszerkovetelmenyek
+          - Windows 10 / 11 (64-bit)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
