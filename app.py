@@ -389,8 +389,9 @@ class Api:
             self._js("onLog('[--] Nincs újabb verzió.')")
             return
 
+        # Find installer asset — name includes version e.g. CikkCheckerSetup_3.1.0.exe
         asset_url = next((a["browser_download_url"] for a in data.get("assets",[])
-                          if a.get("name") == UPDATE_ASSET), None)
+                          if a.get("name","").startswith("CikkCheckerSetup")), None)
         if not asset_url:
             self._js("onLog('[--] Új verzió van, de a telepítő nem található.')")
             return

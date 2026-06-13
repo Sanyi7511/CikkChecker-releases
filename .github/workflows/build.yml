@@ -89,12 +89,13 @@ jobs:
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           path: installer.iss
+          arguments: /DMyAppVersion=${{ env.APP_VERSION }}
 
       - name: GitHub Release letrehozasa
         shell: bash
         run: |
           gh release create "${{ env.RELEASE_TAG }}" \
-            "Output/CikkCheckerSetup.exe" \
+            "Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe" \
             --title "CikkChecker ${{ env.RELEASE_TAG }}" \
             --notes "## CikkChecker ${{ env.RELEASE_TAG }}
 

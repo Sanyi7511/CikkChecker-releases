@@ -8,6 +8,7 @@
   /* ── Reset & Base ─────────────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── Dark theme (default) ───────────────────────────────────────────── */
   :root {
     --grad1: #0D0821;
     --grad2: #1a0f3c;
@@ -25,7 +26,49 @@
     --text: #F1F0FF;
     --text2: #A89FCC;
     --text3: #5C5480;
+    --sidebar-bg: rgba(13,8,33,0.75);
+    --input-bg: rgba(0,0,0,0.3);
+    --blob-opacity: 0.35;
+    --select-bg: rgba(0,0,0,0.3);
+    --row-even: rgba(255,255,255,0.02);
+    --row-hover: rgba(255,255,255,0.05);
+    --log-text: #A89FCC;
   }
+
+  /* ── Light theme ──────────────────────────────────────────────────────── */
+  [data-theme="light"] {
+    --grad1: #EEF0FF;
+    --grad2: #E0E4FF;
+    --grad3: #D4D8FF;
+    --accent: #6B46EF;
+    --accent2: #5B35D4;
+    --pink: #C026A0;
+    --orange: #EA6D0E;
+    --green: #16A34A;
+    --red: #DC2626;
+    --amber: #D97706;
+    --glass: rgba(255,255,255,0.65);
+    --glass2: rgba(255,255,255,0.85);
+    --glass-border: rgba(100,80,200,0.18);
+    --text: #1E1240;
+    --text2: #4B3F80;
+    --text3: #9388B8;
+    --sidebar-bg: rgba(230,228,255,0.85);
+    --input-bg: rgba(255,255,255,0.7);
+    --blob-opacity: 0.18;
+    --select-bg: rgba(255,255,255,0.8);
+    --row-even: rgba(0,0,0,0.02);
+    --row-hover: rgba(107,70,239,0.07);
+    --log-text: #4B3F80;
+  }
+
+  [data-theme="light"] .bg-gradient {
+    background: linear-gradient(135deg, #EEF0FF 0%, #E0E4FF 40%, #D4D8FF 70%, #E8E4FF 100%);
+  }
+  [data-theme="light"] .blob { opacity: var(--blob-opacity); }
+  [data-theme="light"] .blob1 { background: radial-gradient(#A78BFA, transparent); }
+  [data-theme="light"] .blob2 { background: radial-gradient(#EC4899, transparent); }
+  [data-theme="light"] .blob3 { background: radial-gradient(#F97316, transparent); }
 
   html, body {
     width: 100%; height: 100%;
@@ -67,7 +110,7 @@
 
   /* ── Sidebar ─────────────────────────────────────────────────────────── */
   .sidebar {
-    background: rgba(13, 8, 33, 0.7);
+    background: var(--sidebar-bg);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--glass-border);
     display: flex; flex-direction: column;
@@ -86,7 +129,8 @@
   .logo img { width: 40px; height: 40px; border-radius: 10px; }
   .logo-text { display: flex; flex-direction: column; }
   .logo-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
-  .logo-name span { color: var(--accent2); }
+  .logo-cikk { color: var(--text); }
+  .logo-checker { color: var(--accent2); }
   .logo-ver { font-size: 10px; color: var(--text3); margin-top: 1px; }
   .logo-gear {
     margin-left: auto; width: 32px; height: 32px;
@@ -111,7 +155,7 @@
 
   input[type=text], input[type=password] {
     width: 100%; padding: 8px 12px; font-size: 13px;
-    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+    background: var(--input-bg); border: 1px solid var(--glass-border);
     border-radius: 8px; color: var(--text); outline: none;
     transition: border-color 0.2s;
   }
@@ -148,7 +192,7 @@
 
   select {
     width: 100%; padding: 8px 12px; font-size: 12px;
-    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+    background: var(--select-bg); border: 1px solid var(--glass-border);
     border-radius: 8px; color: var(--text); outline: none;
     appearance: none; cursor: pointer;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C5480' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
@@ -296,8 +340,8 @@
     padding: 8px 14px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
     align-items: center; transition: background 0.15s;
   }
-  .table-row:hover { background: var(--glass); }
-  .table-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .table-row:hover { background: var(--row-hover); }
+  .table-row:nth-child(even) { background: var(--row-even); }
   .code-cell { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text); }
   .avail-badge {
     display: inline-flex; align-items: center; gap: 5px;
@@ -319,7 +363,7 @@
   }
   .log-body {
     overflow-y: auto; flex: 1; padding: 10px 12px;
-    font-family: 'Consolas', monospace; font-size: 10px; color: var(--text2);
+    font-family: 'Consolas', monospace; font-size: 10px; color: var(--log-text);
     line-height: 1.6;
   }
   .log-body::-webkit-scrollbar { width: 3px; }
@@ -346,7 +390,8 @@
   .overlay.show { display: flex; }
 
   .settings-modal {
-    background: linear-gradient(135deg, #1a0f3c, #0D0821);
+    background: var(--glass2);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border); border-radius: 20px;
     width: 520px; max-height: 80vh; overflow: hidden;
     display: flex; flex-direction: column;
@@ -401,7 +446,8 @@
 
   /* ── Duplicate / Unknown dialogs ─────────────────────────────────────── */
   .dialog-modal {
-    background: linear-gradient(135deg, #1a0f3c, #0D0821);
+    background: var(--glass2);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border); border-radius: 20px;
     width: 480px; max-height: 70vh;
     display: flex; flex-direction: column;
@@ -452,7 +498,7 @@
     <div class="logo">
       <img id="logo-img" src="../assets/logo.png" onerror="this.style.display='none'">
       <div class="logo-text">
-        <div class="logo-name">Cikk<span>Checker</span></div>
+        <div class="logo-name"><span class="logo-cikk">Cikk</span><span class="logo-checker">Checker</span></div>
         <div class="logo-ver" id="app-version">v3.0.0</div>
       </div>
       <div class="logo-gear" onclick="openSettings()" title="Beállítások">⚙</div>
@@ -783,6 +829,7 @@ const state = {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
+  applyTheme('dark'); // default until config loaded
   // Login toggle
   document.getElementById('login-required').addEventListener('change', toggleLogin);
   toggleLogin();
@@ -1000,8 +1047,10 @@ function closeSettingsIfBg(e) {
   if (e.target === document.getElementById('settings-overlay')) closeSettings();
 }
 async function saveSettings() {
+  const theme = document.getElementById('s-theme').value;
+  applyTheme(theme);
   const cfg = {
-    theme:           document.getElementById('s-theme').value,
+    theme:           theme,
     language:        document.getElementById('s-lang').value,
     auto_update:     document.getElementById('s-auto-update').checked,
     update_interval: document.getElementById('s-upd-interval').value,
@@ -1016,7 +1065,12 @@ async function saveSettings() {
   closeSettings();
 }
 
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme || 'dark');
+}
+
 function applyConfig(cfg) {
+  if (cfg.theme) applyTheme(cfg.theme);
   if (cfg.sleep_seconds) { document.getElementById('sleep').value = cfg.sleep_seconds; document.getElementById('s-sleep').value = cfg.sleep_seconds; }
   if (cfg.save_every)    { document.getElementById('save-every').value = cfg.save_every; document.getElementById('s-save-every').value = cfg.save_every; }
   if (cfg.sort_order)      document.getElementById('sort-order').value = cfg.sort_order;
