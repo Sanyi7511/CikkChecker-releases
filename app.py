@@ -1046,10 +1046,10 @@ class ResultTable(ctk.CTkScrollableFrame):
         self.grid_columnconfigure(0,weight=3); self.grid_columnconfigure(1,weight=2)
         self.grid_columnconfigure(2,weight=2); self._rows=0; self._draw_header()
     def _draw_header(self):
-        for col,(text,anch) in enumerate([("Cikkszám","w"),("Elérhetőség","center"),("Ár","center")]):
+        for col,(text) in enumerate(["Cikkszám","Elérhetőség","Ár"]):
             ctk.CTkLabel(self,text=text,font=ctk.CTkFont(size=11,weight="bold"),
-                         text_color=C["text3"]).grid(row=0,column=col,
-                         padx=(14 if col==0 else 4),pady=(4,6),sticky=anch)
+                         text_color=C["text3"],anchor="w" if col==0 else "center"
+                         ).grid(row=0,column=col,padx=(14 if col==0 else 4),pady=(4,6),sticky="ew")
     def add_row(self,code,avail,price=""):
         r=self._rows+1; self._rows+=1
         styles={"Van":(C["green"],C["green_bg"],"●"),"Nincs":(C["red"],C["red_bg"],"●"),
