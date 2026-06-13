@@ -27,6 +27,10 @@ ArchitecturesAllowed=x64compatible
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 WizardStyle=modern
+; Close running instances before installing to avoid DLL lock errors
+CloseApplications=yes
+CloseApplicationsFilter=CikkChecker.exe
+RestartApplications=no
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ShowLanguageDialog=yes

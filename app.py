@@ -406,7 +406,11 @@ class Api:
         self._js("onStatus('Frissítés letöltése...')")
         self._js(f"onUpdateDownloading({json.dumps(latest)})")
         try:
-            tmp = os.path.join(tempfile.gettempdir(), UPDATE_ASSET)
+            tmp_dir  = tempfile.gettempdir()
+            # Versioned filename to avoid conflicts with running instance
+            versioned_name = f"CikkCheckerSetup_{latest}.exe"
+            tmp = os.path.join(tmp_dir, versioned_name)
+
             with requests.get(url, stream=True, timeout=120) as r:
                 r.raise_for_status()
                 total = int(r.headers.get("content-length", 0))
@@ -419,13 +423,34 @@ class Api:
                             if total:
                                 pct = int(downloaded / total * 100)
                                 self._js(f"onUpdateProgress({pct})")
+
             self._js("onLog('[--] Letöltés kész — telepítő indul...')")
             self._js("onUpdateReady()")
             time.sleep(1.5)
+
+            # Use a .bat launcher with delay so the app can fully close
+            # before the installer touches any DLL files
+            bat_path = os.path.join(tmp_dir, "cikkchecker_update.bat")
+            bat = f'''@echo off
+:: Wait for the app to fully exit and release DLL locks
+timeout /t 4 /nobreak > nul
+:: Run the installer silently in background
+start "" "{tmp}"
+:: Self-delete this bat
+del "%~f0"
+'''
+            with open(bat_path, "w", encoding="utf-8") as f:
+                f.write(bat)
+
             import subprocess as sp
-            sp.Popen([tmp], shell=True)
-            time.sleep(1)
+            sp.Popen(
+                ["cmd", "/c", bat_path],
+                creationflags=0x08000000,  # CREATE_NO_WINDOW
+                close_fds=True
+            )
+            time.sleep(0.5)
             self._window.destroy()
+
         except Exception as e:
             self._js(f"onLog({json.dumps(f'[ERR] Frissítési hiba: {e}')})")
             self._js("onUpdateFailed()")
