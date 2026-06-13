@@ -35,7 +35,6 @@ ShowLanguageDialog=yes
 Name: "hungarian";  MessagesFile: "compiler:Languages\Hungarian.isl"
 Name: "english";    MessagesFile: "compiler:Default.isl"
 Name: "german";     MessagesFile: "compiler:Languages\German.isl"
-Name: "romanian";   MessagesFile: "compiler:Languages\Romanian.isl"
 Name: "slovak";     MessagesFile: "compiler:Languages\Slovak.isl"
 Name: "czech";      MessagesFile: "compiler:Languages\Czech.isl"
 Name: "polish";     MessagesFile: "compiler:Languages\Polish.isl"
@@ -47,11 +46,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "CikkChecker_app.exe"; DestDir: "{app}"; DestName: "CikkChecker.exe"; Flags: ignoreversion
 Source: "checker_core.exe";    DestDir: "{app}"; Flags: ignoreversion
+Source: "assets\*";            DestDir: "{app}\assets"; Flags: ignoreversion recursesubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}";              Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\Uninstall {#MyAppName}";    Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}";        Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}";           Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#MyAppName}";     Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
