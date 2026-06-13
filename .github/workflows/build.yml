@@ -77,13 +77,12 @@ jobs:
       - name: app.exe buildelese (PyInstaller)
         shell: cmd
         run: |
-          pyinstaller --onefile --noconsole --name "CikkChecker" ^
+          pyinstaller --onedir --noconsole --name "CikkChecker" ^
             --icon "assets\icon.ico" ^
             --add-data "ui;ui" ^
             --add-data "assets;assets" ^
             --add-data "version.txt;." ^
             app.py
-          copy dist\CikkChecker.exe CikkChecker_app.exe
 
       - name: Inno Setup telepito
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
@@ -97,10 +96,17 @@ jobs:
           echo "Output mappa tartalma:"
           ls -la Output/ || echo "Output mappa nem letezik!"
 
+      - name: Build ellenorzese
+        shell: bash
+        run: |
+          echo "PyInstaller dist mappa:"
+          ls dist/CikkChecker/ | head -10
+          echo "Output mappa:"
+          ls Output/ 2>/dev/null || echo "(ures)"
+
       - name: Installer atnevezese
         shell: bash
         run: |
-          # Find whatever .exe Inno Setup generated and rename it to a known name
           FOUND=$(ls Output/*.exe 2>/dev/null | head -1)
           if [ -z "$FOUND" ]; then
             echo "ERROR: Nem talaltam .exe fajlt az Output mappaban!"

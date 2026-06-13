@@ -48,9 +48,10 @@ Name: "french";     MessagesFile: "compiler:Languages\French.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "CikkChecker_app.exe"; DestDir: "{app}"; DestName: "CikkChecker.exe"; Flags: ignoreversion
-Source: "checker_core.exe";    DestDir: "{app}"; Flags: ignoreversion
-Source: "assets\*";            DestDir: "{app}\assets"; Flags: ignoreversion recursesubdirs
+; PyInstaller onedir output — copy entire folder (no DLL temp extraction issues)
+Source: "dist\CikkChecker\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Rust backend
+Source: "checker_core.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}";           Filename: "{app}\{#MyAppExeName}"
