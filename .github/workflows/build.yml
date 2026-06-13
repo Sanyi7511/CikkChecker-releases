@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Verzio (pl. v2.0.1)'
+        description: 'Verzio (pl. v3.0.0)'
         required: true
-        default: 'v2.0.0'
+        default: 'v3.0.0'
 
 jobs:
   build:
@@ -65,10 +65,10 @@ jobs:
         shell: cmd
         run: pip install customtkinter pillow openpyxl requests pystray pyinstaller
 
-      - name: app.exe buildelese
+      - name: app.exe buildelese (PyInstaller)
         shell: cmd
         run: |
-          pyinstaller --onefile --noconsole --name "CikkChecker" app.py
+          pyinstaller --onefile --noconsole --name "CikkChecker" --icon "assets\icon.ico" app.py
           copy dist\CikkChecker.exe CikkChecker_app.exe
 
       - name: Inno Setup telepito
@@ -76,7 +76,7 @@ jobs:
         with:
           path: installer.iss
 
-      - name: GitHub Release letrehozasa (gh cli)
+      - name: GitHub Release
         shell: bash
         run: |
           gh release create "${{ env.RELEASE_TAG }}" \

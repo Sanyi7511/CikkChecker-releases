@@ -1,5 +1,5 @@
 #define MyAppName "CikkChecker"
-#define MyAppVersion "2.0.0"
+#define MyAppVersion "3.0.0"
 #define MyAppPublisher "Sanyi7511"
 #define MyAppURL "https://github.com/Sanyi7511/CikkChecker-releases"
 #define MyAppExeName "CikkChecker.exe"
@@ -17,6 +17,8 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=Output
 OutputBaseFilename=CikkCheckerSetup
+SetupIconFile=assets\icon.ico
+WizardSmallImageFile=assets\logo_small.png
 Compression=lzma2/ultra
 SolidCompression=yes
 MinVersion=10.0
@@ -27,24 +29,32 @@ PrivilegesRequiredOverridesAllowed=dialog
 WizardStyle=modern
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
+ShowLanguageDialog=yes
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "hungarian";  MessagesFile: "compiler:Languages\Hungarian.isl"
+Name: "english";    MessagesFile: "compiler:Default.isl"
+Name: "german";     MessagesFile: "compiler:Languages\German.isl"
+Name: "romanian";   MessagesFile: "compiler:Languages\Romanian.isl"
+Name: "slovak";     MessagesFile: "compiler:Languages\Slovak.isl"
+Name: "czech";      MessagesFile: "compiler:Languages\Czech.isl"
+Name: "polish";     MessagesFile: "compiler:Languages\Polish.isl"
+Name: "french";     MessagesFile: "compiler:Languages\French.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create desktop shortcut"
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 Source: "CikkChecker_app.exe"; DestDir: "{app}"; DestName: "CikkChecker.exe"; Flags: ignoreversion
-Source: "checker_core.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "checker_core.exe";    DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}";              Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\Uninstall {#MyAppName}";    Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#MyAppName}";        Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch CikkChecker"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
