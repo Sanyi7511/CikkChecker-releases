@@ -1387,13 +1387,16 @@ function resolveUnknown(action) {
 
 // ── Settings ───────────────────────────────────────────────────────────────
 function openSettings() {
-  // Sync sidebar → modal before opening
-  const sleepEl = document.getElementById('sleep');
-  const saveEl  = document.getElementById('save-every');
-  if (sleepEl && sleepEl.value) document.getElementById('s-sleep').value = sleepEl.value;
-  if (saveEl  && saveEl.value)  document.getElementById('s-save-every').value = saveEl.value;
-  document.getElementById('s-auto-rm').checked  = document.getElementById('auto-rm').checked;
-  document.getElementById('s-save-dup').checked = document.getElementById('save-dup').checked;
+  // Sync current values into settings modal
+  const sleepEl   = document.getElementById('sleep');
+  const saveEvEl  = document.getElementById('save-every');
+  if (sleepEl?.value)  document.getElementById('s-sleep').value    = sleepEl.value;
+  if (saveEvEl?.value) document.getElementById('s-save-every').value = saveEvEl.value;
+  // auto-rm and save-dup are now hidden value inputs
+  const autoRmEl  = document.getElementById('auto-rm-val');
+  const saveDupEl = document.getElementById('save-dup-val');
+  if (autoRmEl)  document.getElementById('s-auto-rm').checked  = autoRmEl.value === 'true';
+  if (saveDupEl) document.getElementById('s-save-dup').checked = saveDupEl.value !== 'false';
   toggleManualUpdateBtn();
   document.getElementById('settings-overlay').classList.add('show');
 }
