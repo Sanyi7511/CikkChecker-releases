@@ -104,17 +104,68 @@ jobs:
           echo "Output mappa:"
           ls Output/ 2>/dev/null || echo "(ures)"
 
-      - name: Installer atnevezese
-        shell: bash
+      - name: Kod alairashoz tanusitvany letrehozasa
+        shell: powershell
         run: |
-          FOUND=$(ls Output/*.exe 2>/dev/null | head -1)
-          if [ -z "$FOUND" ]; then
-            echo "ERROR: Nem talaltam .exe fajlt az Output mappaban!"
-            exit 1
-          fi
-          echo "Talalt fajl: $FOUND"
-          cp "$FOUND" "Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe"
-          echo "Atnevezve: Output/CikkCheckerSetup_${{ env.APP_VERSION }}.exe"
+          # Self-signed code signing certificate
+          $cert = New-SelfSignedCertificate `
+            -Subject "CN=CikkChecker, O=Sanyi7511, L=Hungary" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -Type CodeSigningCert `
+            -KeyUsage DigitalSignature `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -NotAfter (Get-Date).AddYears(5)
+          $pwd = ConvertTo-SecureString -String "CikkCheckerSign2024!" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "codesign.pfx" -Password $pwd
+          echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+          echo "Tanusitvany letrehozva: $($cert.Thumbprint)"
+
+      - name: Exe fajlok alairaasa (signtool)
+        shell: cmd
+        run: |
+          :: Find signtool
+          for /r "C:\Program Files (x86)\Windows Kits" %%f in (signtool.exe) do set SIGNTOOL=%%f
+          echo Signtool: %SIGNTOOL%
+
+          :: Sign main exe
+          "%SIGNTOOL%" sign ^
+            /f codesign.pfx ^
+            /p CikkCheckerSign2024! ^
+            /fd SHA256 ^
+            /tr http://timestamp.digicert.com ^
+            /td SHA256 ^
+            /v ^
+            "dist\CikkChecker\CikkChecker.exe"
+
+          :: Sign Rust binary
+          "%SIGNTOOL%" sign ^
+            /f codesign.pfx ^
+            /p CikkCheckerSign2024! ^
+            /fd SHA256 ^
+            /tr http://timestamp.digicert.com ^
+            /td SHA256 ^
+            /v ^
+            "checker_core.exe"
+        continue-on-error: true
+
+      - name: Installer atnevezese es alairaasa
+        shell: powershell
+        run: |
+          $found = Get-ChildItem Output\*.exe | Select-Object -First 1
+          if (-not $found) { Write-Error "Nem talaltam .exe-t az Output mappaban!"; exit 1 }
+          Write-Host "Talalt: $($found.FullName)"
+
+          $dest = "Output\CikkCheckerSetup_${{ env.APP_VERSION }}.exe"
+          Copy-Item $found.FullName $dest
+
+          # Sign the setup exe too
+          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits" -Recurse -Filter signtool.exe | Select-Object -First 1).FullName
+          if ($signtool) {
+            & $signtool sign /f codesign.pfx /p "CikkCheckerSign2024!" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /v $dest
+            Write-Host "Setup alairas kesz"
+          }
+          Write-Host "Kesz: $dest"
 
       - name: GitHub Release letrehozasa
         shell: bash

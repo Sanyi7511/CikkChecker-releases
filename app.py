@@ -133,7 +133,10 @@ class Api:
         result = [None]
         ev = threading.Event()
         def _run():
-            root = tk.Tk(); root.withdraw(); root.attributes('-topmost', True)
+            root = tk.Tk()
+            root.withdraw()
+            try: root.attributes('-topmost', True)
+            except: pass
             result[0] = fn(root)
             root.destroy(); ev.set()
         threading.Thread(target=_run, daemon=True).start()
@@ -170,10 +173,13 @@ class Api:
 
             elif filetype == "csv":
                 import csv as _csv
-                # Try to detect delimiter
                 with open(path, encoding="utf-8-sig", errors="replace") as f:
                     sample = f.read(2048)
-                dialect = _csv.Sniffer().sniff(sample, delimiters=",;	|")
+                # Try to detect delimiter, fallback to semicolon then comma
+                try:
+                    dialect = _csv.Sniffer().sniff(sample, delimiters=",;	|")
+                except _csv.Error:
+                    dialect = _csv.excel  # default comma
                 with open(path, encoding="utf-8-sig", errors="replace", newline="") as f:
                     reader = _csv.reader(f, dialect)
                     rows = list(reader)
@@ -254,7 +260,6 @@ class Api:
         pw         = config.get("password","").strip()
         req_login  = config.get("req_login", False)
         txt_path   = config.get("txt_path","").strip()
-        xlsx_path  = config.get("xlsx_path","").strip()
         sleep_s    = float(config.get("sleep_s", 0.8))
         save_every = int(config.get("save_every", 100))
         sort_order = config.get("sort_order","abc")
@@ -263,15 +268,25 @@ class Api:
         manual     = config.get("manual","").strip()
         skip_dup   = config.get("skip_dup", False)
 
-        if not url or not xlsx_path:
-            self._js("onLog('[!!] URL és Excel fájl megadása kötelező.')")
+        if not url:
+            self._js("onLog('[!!] Add meg az oldal URL-jét.')")
             return False
         if req_login and (not user or not pw):
             self._js("onLog('[!!] Felhasználónév és jelszó szükséges.')")
             return False
-        if not xlsx_path.lower().endswith(".xlsx"):
-            self._js("onLog('[!!] Az Excel fájlnak .xlsx kiterjesztésűnek kell lennie.')")
-            return False
+
+        # Auto-determine output folder:
+        # 1. Same folder as input file (if given)
+        # 2. Desktop
+        # 3. Current directory
+        if txt_path and os.path.exists(txt_path):
+            out_folder = os.path.dirname(os.path.abspath(txt_path))
+        else:
+            desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+            out_folder = desktop if os.path.exists(desktop) else os.path.abspath(".")
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M")
+        xlsx_path = os.path.join(out_folder, f"CikkChecker_{ts}.xlsx")
 
         # Collect codes — preloaded takes priority over raw txt_path
         preloaded = config.get("preloaded", [])
@@ -315,9 +330,8 @@ class Api:
                                           encoding="utf-8", delete=False)
         tmp.write("\n".join(codes)); tmp.close()
 
-        self._cfg["last_url"]  = url
-        self._cfg["last_xlsx"] = xlsx_path
-        self._cfg["last_txt"]  = txt_path
+        self._cfg["last_url"] = url
+        self._cfg["last_txt"] = txt_path
         save_config_file(self._cfg)
 
         if not os.path.exists(BINARY_PATH):
@@ -338,6 +352,7 @@ class Api:
         self._csv_path   = csv_path
 
         self._js(f"onLog('[--] Indítás — {len(codes)} cikkszám')")
+        self._js(f"onLog('[--] Kimenet: {xlsx_path}')")
         self._js("onStatus('Indítás...')")
 
         self._proc = subprocess.Popen(
@@ -357,7 +372,10 @@ class Api:
 
     def restart_process(self):
         self.stop_process()
-        self._js("onLog('[--] Újraindítás...')")
+        self._stop_req  = False
+        self._unk_mode  = None
+        self._js("onLog('[--] Újraindítás — folyamat leállítva, újraindítható.')")
+        self._js("onStatus('Várakozás')")
         return True
 
     # ── Process reader ────────────────────────────────────────────────────
@@ -373,7 +391,8 @@ class Api:
 
                 if kind == "log":
                     ts = datetime.now().strftime("%H:%M:%S")
-                    self._js(f"onLog({json.dumps(f'[{ts}] {msg[chr(109)][chr(115)][chr(103)]}')})")
+                    text = msg.get("msg", "")
+                    self._js(f"onLog({json.dumps(f'[{ts}] {text}')})")
 
                 elif kind == "status":
                     self._js(f"onStatus({json.dumps(msg['msg'])})")
@@ -516,14 +535,15 @@ class Api:
             # Use a .bat launcher with delay so the app can fully close
             # before the installer touches any DLL files
             bat_path = os.path.join(tmp_dir, "cikkchecker_update.bat")
-            bat = f'''@echo off
-:: Wait for the app to fully exit and release DLL locks
-timeout /t 4 /nobreak > nul
-:: Run the installer silently in background
-start "" "{tmp}"
-:: Self-delete this bat
-del "%~f0"
-'''
+            bat = (
+                "@echo off\n"
+                ":: Varunk amig az app teljesen bezarul es elengedi a DLL-eket\n"
+                "timeout /t 4 /nobreak > nul\n"
+                ":: Csendes telepites - nincs ablak, minden automatikusan elfogadva\n"
+                f'start "" /wait "{tmp}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS\n'
+                ":: Self-delete\n"
+                "del \"%~f0\"\n"
+            )
             with open(bat_path, "w", encoding="utf-8") as f:
                 f.write(bat)
 

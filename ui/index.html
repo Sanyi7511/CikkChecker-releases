@@ -558,6 +558,51 @@
     color: var(--text2); cursor: pointer;
   }
 
+  /* ── Modern checkbox ────────────────────────────────────────────────── */
+  .chk-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--glass-border);
+  }
+  .chk-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .chk-row:first-child { padding-top: 0; }
+  .chk-label {
+    display: flex; flex-direction: column; gap: 2px; flex: 1; margin-right: 12px;
+  }
+  .chk-label span { font-size: 13px; color: var(--text); }
+  .chk-label small { font-size: 10px; color: var(--text3); }
+
+  /* ── Start config modal ──────────────────────────────────────────────── */
+  .start-modal {
+    background: linear-gradient(145deg, rgba(26,15,60,0.98), rgba(13,8,33,0.98));
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border); border-radius: 20px;
+    width: 420px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(0.95) translateY(-10px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+  }
+  .start-modal-hdr {
+    padding: 20px 22px 14px;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .start-modal-title { font-size: 16px; font-weight: 700; color: var(--text); flex: 1; }
+  .start-modal-body { padding: 16px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .start-modal-footer {
+    padding: 14px 22px 20px;
+    border-top: 1px solid var(--glass-border);
+    display: flex; gap: 10px;
+  }
+  .start-modal-footer .btn { flex: 1; height: 42px; }
+
+  .sm-field label { font-size: 10px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.8px; display: block; margin-bottom: 5px; }
+  .sm-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
   /* ── Duplicate / Unknown dialogs ─────────────────────────────────────── */
   .dialog-modal {
     background: var(--glass2);
@@ -619,81 +664,89 @@
     </div>
 
     <!-- Connection -->
-    <div class="sb-section" data-i18n="s_connection">KAPCSOLAT</div>
+    <div class="sb-section">KAPCSOLAT</div>
     <div class="sb-card">
       <div class="sb-field">
-        <label class="sb-label" data-i18n="url_label">Weboldal URL</label>
+        <label class="sb-label">Weboldal URL</label>
         <input type="text" id="url" placeholder="https://" onblur="detectLogin()">
         <div class="detect-badge" id="detect-badge" style="display:none"></div>
       </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="login-required">
-        <label for="login-required" data-i18n="login_required">Bejelentkezés szükséges</label>
+      <!-- Modern toggle for login required -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:2px 0">
+        <span style="font-size:12px;color:var(--text2)">Bejelentkezés szükséges</span>
+        <label class="toggle">
+          <input type="checkbox" id="login-required" onchange="toggleLogin()">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </div>
 
-    <!-- Login -->
-    <div class="sb-section" data-i18n="s_login">BEJELENTKEZÉS</div>
-    <div class="sb-card" id="login-card">
+    <!-- Login — section title also hidden when off -->
+    <div id="login-section-hdr" class="sb-section" style="display:none">BEJELENTKEZÉS</div>
+    <div class="sb-card" id="login-card" style="display:none">
       <div class="sb-field">
-        <label class="sb-label" data-i18n="username">Felhasználónév</label>
+        <label class="sb-label">Felhasználónév</label>
         <input type="text" id="username">
       </div>
       <div class="sb-field">
-        <label class="sb-label" data-i18n="password">Jelszó</label>
+        <label class="sb-label">Jelszó</label>
         <input type="password" id="password">
       </div>
     </div>
 
     <!-- Files -->
-    <div class="sb-section" data-i18n="s_files">FÁJLOK</div>
+    <div class="sb-section">CIKKSZÁM FORRÁS</div>
     <div class="sb-card">
       <div class="sb-field">
-        <label class="sb-label" data-i18n="codes_txt">Cikkszám TXT</label>
-        <input type="text" id="txt-path" readonly>
-        <button class="file-btn" onclick="browseTxt()">📂 TXT kiválasztása</button>
-      </div>
-      <div class="sb-field">
-        <label class="sb-label" data-i18n="excel_output">Excel kimenet</label>
-        <input type="text" id="xlsx-path" readonly>
-        <button class="file-btn" onclick="browseXlsx()">💾 Excel mentési helye</button>
+
+        <!-- Drag & drop zone -->
+        <div id="drop-zone"
+             ondragover="dzDragOver(event)"
+             ondragleave="dzDragLeave(event)"
+             ondrop="dzDrop(event)">
+          <div class="dz-icon">📥</div>
+          <div class="dz-text">Húzd ide a fájlt</div>
+          <div class="dz-sub">TXT · CSV · Excel — bármit elfogad</div>
+          <div class="dz-loaded" id="dz-loaded" style="display:none"></div>
+        </div>
+
+        <!-- Format buttons -->
+        <div class="fmt-btns">
+          <button class="fmt-btn" onclick="browseFile('txt')"  title="Szöveges fájl, soronként 1 cikkszám">📄 TXT</button>
+          <button class="fmt-btn" onclick="browseFile('csv')"  title="CSV — első oszlopból olvassa">📊 CSV</button>
+          <button class="fmt-btn" onclick="browseFile('xlsx')" title="Excel — első oszlopból olvassa">📗 Excel</button>
+          <button class="fmt-btn fmt-clear" onclick="clearSourceFile()" title="Forrás törlése">✕</button>
+        </div>
+
+        <!-- Column selector (CSV/Excel esetén) -->
+        <div id="col-picker" style="display:none;margin-top:8px">
+          <label class="sb-label">Melyik oszlopból?</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="col-select" style="flex:1">
+              <option value="0">1. oszlop</option>
+              <option value="1">2. oszlop</option>
+              <option value="2">3. oszlop</option>
+              <option value="3">4. oszlop</option>
+              <option value="4">5. oszlop</option>
+            </select>
+            <button class="fmt-btn" onclick="reloadWithCol()" style="padding:6px 10px">↺</button>
+          </div>
+          <div id="col-preview" style="font-size:10px;color:var(--text3);margin-top:4px"></div>
+        </div>
+
+        <!-- Hidden path tracker -->
+        <input type="hidden" id="txt-path">
+        <!-- Excel output is auto-generated, or chosen via Export panel -->
+        <input type="hidden" id="xlsx-path">
       </div>
     </div>
 
-    <!-- Settings -->
-    <div class="sb-section" data-i18n="s_settings">BEÁLLÍTÁSOK</div>
-    <div class="sb-card">
-      <div class="row2">
-        <div class="sb-field">
-          <label class="sb-label" data-i18n="wait_sec">Lekérések közt (mp)</label>
-          <input type="text" id="sleep" value="0.8">
-        </div>
-        <div class="sb-field">
-          <label class="sb-label" data-i18n="save_every">Mentési köz (db)</label>
-          <input type="text" id="save-every" value="100">
-        </div>
-      </div>
-      <div class="sb-field">
-        <label class="sb-label" data-i18n="sort_order">Sorrend</label>
-        <select id="sort-order">
-          <option value="abc">ABC (A→Z)</option>
-          <option value="abc_desc">ABC (Z→A)</option>
-          <option value="num">Szám (0→9)</option>
-          <option value="num_desc">Szám (9→0)</option>
-          <option value="none">Eredeti sorrend</option>
-        </select>
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="auto-rm">
-        <label for="auto-rm">Auto duplikátum eltávolítás</label>
-        <span class="tip" data-tip="Azonos cikkszámokból csak&#10;egyet hagy meg automatikusan.">?</span>
-      </div>
-      <div class="checkbox-row" style="margin-top:6px">
-        <input type="checkbox" id="save-dup" checked>
-        <label for="save-dup">Duplikátumok TXT-be</label>
-        <span class="tip" data-tip="Az eltávolított duplikátumokat&#10;menti a duplicates.txt fájlba.">?</span>
-      </div>
-    </div>
+    <!-- Settings values stored as hidden inputs, shown in start modal -->
+    <input type="hidden" id="sleep" value="0.8">
+    <input type="hidden" id="save-every" value="100">
+    <input type="hidden" id="sort-order" value="abc">
+    <input type="hidden" id="auto-rm-val" value="false">
+    <input type="hidden" id="save-dup-val" value="true">
 
     <!-- Actions -->
     <div class="sb-section" data-i18n="s_actions">MŰVELETEK</div>
@@ -850,23 +903,32 @@
       <div class="setting-group">
         <h3>Frissítések</h3>
         <div class="setting-row">
-          <div>
+          <div style="display:flex;align-items:center">
             <div class="setting-label">Automatikus frissítés keresése</div>
+            <span class="tip" data-tip="Ha be van kapcsolva, az app indításkor&#10;automatikusan ellenőrzi a GitHub-ot,&#10;hogy van-e újabb verzió.">?</span>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="s-auto-update" checked>
+            <input type="checkbox" id="s-auto-update" checked onchange="toggleManualUpdateBtn()">
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div class="setting-row">
-          <div>
+        <div class="setting-row" id="upd-interval-row">
+          <div style="display:flex;align-items:center">
             <div class="setting-label">Ellenőrzés gyakorisága</div>
+            <span class="tip" data-tip="Milyen gyakran ellenőrizze&#10;a GitHub-ot frissítések után.">?</span>
           </div>
           <select id="s-upd-interval" style="width:130px">
             <option value="on_start">Indításkor</option>
             <option value="daily">Naponta</option>
             <option value="never">Soha</option>
           </select>
+        </div>
+        <div class="setting-row" id="manual-update-row" style="display:none">
+          <div style="display:flex;align-items:center">
+            <div class="setting-label">Kézi frissítés keresése</div>
+            <span class="tip" data-tip="Az automatikus keresés ki van kapcsolva.&#10;Kattints a gombra a manuális ellenőrzéshez.">?</span>
+          </div>
+          <button class="btn btn-secondary" onclick="checkUpdate()" style="padding:5px 14px;font-size:12px;height:auto">🔄 Keresés</button>
         </div>
       </div>
       <div class="setting-group">
@@ -1038,8 +1100,11 @@ function onUnknown(code) {
 
 function onDone() {
   onStatus('Kész ✓');
-  state.running = false; state.canContinue = false;
+  state.running = false;
+  state.canContinue = false;
   updateStartBtn();
+  // Re-enable start button
+  document.getElementById('btn-start').disabled = false;
 }
 
 function onUpdateAvailable(version, asset) {
@@ -1067,8 +1132,9 @@ async function doUpdate() {
 
 // ── UI Actions ─────────────────────────────────────────────────────────────
 function toggleLogin() {
-  const card = document.getElementById('login-card');
-  card.style.display = document.getElementById('login-required').checked ? 'block' : 'none';
+  const show = document.getElementById('login-required').checked;
+  document.getElementById('login-card').style.display      = show ? 'block' : 'none';
+  document.getElementById('login-section-hdr').style.display = show ? 'block' : 'none';
 }
 
 async function detectLogin() {
@@ -1106,12 +1172,12 @@ async function loadFile(path, type, colIndex) {
   if (!result) { showToast('Nem sikerült beolvasni a fájlt', '✗'); return; }
 
   _sourceData = result.codes;
-  const filename = path.split(/[\/]/).pop();
+  const filename = path.split(/[\/\\]/).pop();
 
   // Update drop zone
   const dz = document.getElementById('drop-zone');
   dz.classList.add('has-file');
-  document.getElementById('dz-icon') && (document.getElementById('dz-icon').textContent = '✅');
+  const dzIcon = document.querySelector('.dz-icon'); if (dzIcon) dzIcon.textContent = '✅';
   document.querySelector('.dz-text').textContent = filename;
   document.querySelector('.dz-sub').textContent = `${result.codes.length} cikkszám beolvasva`;
   document.querySelector('.dz-sub').style.color = 'var(--green)';
@@ -1176,14 +1242,44 @@ async function dzDrop(e) {
   else showToast('Húzd a fájlt közvetlenül a programra', '⚠');
 }
 
-async function browseXlsx() {
-  const path = await py('browse_xlsx');
-  if (path) document.getElementById('xlsx-path').value = path;
+function startAction() {
+  if (state.canContinue) {
+    // Continue: skip duplicate check, no modal
+    runProcess(true);
+  } else {
+    // Fresh start: show config modal
+    openStartModal();
+  }
 }
 
-function startAction() {
-  if (state.canContinue) runProcess(true);
-  else runProcess(false);
+function openStartModal() {
+  // Pre-fill modal from saved config values
+  document.getElementById('sm-sleep').value     = document.getElementById('sleep').value || '0.8';
+  document.getElementById('sm-save-every').value= document.getElementById('save-every').value || '100';
+  document.getElementById('sm-sort').value      = document.getElementById('sort-order').value || 'abc';
+  document.getElementById('sm-auto-rm').checked = document.getElementById('auto-rm-val').value === 'true';
+  document.getElementById('sm-dont-ask').checked= false;
+  document.getElementById('sm-save-dup').checked= document.getElementById('save-dup-val').value !== 'false';
+  document.getElementById('start-modal-overlay').classList.add('show');
+}
+
+function closeStartModal() {
+  document.getElementById('start-modal-overlay').classList.remove('show');
+}
+
+function closeStartModalIfBg(e) {
+  if (e.target === document.getElementById('start-modal-overlay')) closeStartModal();
+}
+
+function confirmStart() {
+  // Save modal values to hidden inputs
+  document.getElementById('sleep').value      = document.getElementById('sm-sleep').value;
+  document.getElementById('save-every').value = document.getElementById('sm-save-every').value;
+  document.getElementById('sort-order').value = document.getElementById('sm-sort').value;
+  document.getElementById('auto-rm-val').value= document.getElementById('sm-auto-rm').checked ? 'true' : 'false';
+  document.getElementById('save-dup-val').value=document.getElementById('sm-save-dup').checked ? 'true' : 'false';
+  closeStartModal();
+  runProcess(false);
 }
 
 async function runProcess(skipDup) {
@@ -1194,31 +1290,46 @@ async function runProcess(skipDup) {
     req_login:  document.getElementById('login-required').checked,
     txt_path:   document.getElementById('txt-path').value.trim(),
     preloaded:  _sourceData,
-    xlsx_path:  document.getElementById('xlsx-path').value.trim(),
+    xlsx_path:  '',  // auto-determined by Python from input or Desktop
     sleep_s:    parseFloat(document.getElementById('sleep').value) || 0.8,
     save_every: parseInt(document.getElementById('save-every').value) || 100,
-    sort_order: document.getElementById('sort-order').value,
-    auto_rm:    document.getElementById('auto-rm').checked,
-    save_dup:   document.getElementById('save-dup').checked,
+    sort_order: document.getElementById('sort-order').value || 'abc',
+    auto_rm:    document.getElementById('auto-rm-val').value === 'true',
+    dont_ask:   document.getElementById('sm-dont-ask') ? document.getElementById('sm-dont-ask').checked : false,
+    save_dup:   document.getElementById('save-dup-val').value !== 'false',
     manual:     document.getElementById('manual-codes').value.trim(),
     skip_dup:   skipDup,
   };
 
   resetStats();
-  state.running = true; state.canContinue = true;
+  state.running = true;
   updateStartBtn();
-  await py('start_process', config);
+  document.getElementById('btn-start').disabled = true;
+  const ok = await py('start_process', config);
+  if (ok) {
+    state.canContinue = true;
+    document.getElementById('btn-start').disabled = false;
+  } else {
+    state.running = false;
+    state.canContinue = false;
+    document.getElementById('btn-start').disabled = false;
+  }
+  updateStartBtn();
 }
 
 function stopProcess() {
+  if (!state.running && !state.canContinue) return;
   py('stop_process');
+  state.running = false;
   state.canContinue = true;
   updateStartBtn();
 }
 
 function restartProcess() {
   py('restart_process');
-  state.running = false; state.canContinue = false;
+  state.running = false;
+  state.canContinue = false;
+  _sourceData = [];  // clear preloaded codes so fresh start reads file again
   resetStats();
   updateStartBtn();
 }
@@ -1276,6 +1387,14 @@ function resolveUnknown(action) {
 
 // ── Settings ───────────────────────────────────────────────────────────────
 function openSettings() {
+  // Sync sidebar → modal before opening
+  const sleepEl = document.getElementById('sleep');
+  const saveEl  = document.getElementById('save-every');
+  if (sleepEl && sleepEl.value) document.getElementById('s-sleep').value = sleepEl.value;
+  if (saveEl  && saveEl.value)  document.getElementById('s-save-every').value = saveEl.value;
+  document.getElementById('s-auto-rm').checked  = document.getElementById('auto-rm').checked;
+  document.getElementById('s-save-dup').checked = document.getElementById('save-dup').checked;
+  toggleManualUpdateBtn();
   document.getElementById('settings-overlay').classList.add('show');
 }
 function closeSettings() {
@@ -1285,21 +1404,36 @@ function closeSettingsIfBg(e) {
   if (e.target === document.getElementById('settings-overlay')) closeSettings();
 }
 async function saveSettings() {
-  const theme = document.getElementById('s-theme').value;
+  const theme      = document.getElementById('s-theme').value;
+  const sleepVal   = parseFloat(document.getElementById('s-sleep').value) || 0.8;
+  const saveEvery  = parseInt(document.getElementById('s-save-every').value) || 100;
+  const autoRm     = document.getElementById('s-auto-rm').checked;
+  const dontAsk    = document.getElementById('s-dont-ask').checked;
+  const saveDup    = document.getElementById('s-save-dup').checked;
+
   applyTheme(theme);
+
+  // Sync settings values back to sidebar controls immediately
+  document.getElementById('sleep').value      = sleepVal;
+  document.getElementById('save-every').value = saveEvery;
+  document.getElementById('auto-rm-val').value  = autoRm ? 'true' : 'false';
+  document.getElementById('save-dup-val').value = saveDup ? 'true' : 'false';
+
   const cfg = {
-    theme:           theme,
+    theme,
     language:        document.getElementById('s-lang').value,
     auto_update:     document.getElementById('s-auto-update').checked,
     update_interval: document.getElementById('s-upd-interval').value,
-    sleep_seconds:   parseFloat(document.getElementById('s-sleep').value) || 0.8,
-    save_every:      parseInt(document.getElementById('s-save-every').value) || 100,
+    sleep_seconds:   sleepVal,
+    save_every:      saveEvery,
     show_price:      document.getElementById('s-show-price').checked,
-    auto_rm_dup:     document.getElementById('s-auto-rm').checked,
-    dont_ask_dup:    document.getElementById('s-dont-ask').checked,
-    save_dup_txt:    document.getElementById('s-save-dup').checked,
+    auto_rm_dup:     autoRm,
+    dont_ask_dup:    dontAsk,
+    save_dup_txt:    saveDup,
   };
+
   await py('save_config', cfg);
+  toggleManualUpdateBtn();
   closeSettings();
 }
 
@@ -1316,38 +1450,52 @@ function toggleManualUpdateBtn() {
 }
 
 function applyConfig(cfg) {
-  if (cfg.theme) applyTheme(cfg.theme);
-  if (cfg.sleep_seconds) { document.getElementById('sleep').value = cfg.sleep_seconds; document.getElementById('s-sleep').value = cfg.sleep_seconds; }
-  if (cfg.save_every)    { document.getElementById('save-every').value = cfg.save_every; document.getElementById('s-save-every').value = cfg.save_every; }
-  if (cfg.sort_order)      document.getElementById('sort-order').value = cfg.sort_order;
-  if (cfg.auto_rm_dup)     document.getElementById('auto-rm').checked = cfg.auto_rm_dup;
-  if (cfg.save_dup_txt !== undefined) document.getElementById('save-dup').checked = cfg.save_dup_txt;
-  if (cfg.last_url)        document.getElementById('url').value = cfg.last_url;
-  if (cfg.last_xlsx)       document.getElementById('xlsx-path').value = cfg.last_xlsx;
+  // Helper: set element value only if defined
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (!el || val === undefined || val === null) return;
+    if (el.type === 'checkbox') el.checked = Boolean(val);
+    else el.value = val;
+  }
+
+  // Theme
+  if (cfg.theme) { applyTheme(cfg.theme); set('s-theme', cfg.theme); }
+
+  // Sidebar controls
+  set('sleep',      cfg.sleep_seconds);
+  set('save-every', cfg.save_every);
+  set('sort-order', cfg.sort_order);
+  if (cfg.auto_rm_dup !== undefined) document.getElementById('auto-rm-val').value = cfg.auto_rm_dup ? 'true' : 'false';
+  if (cfg.save_dup_txt !== undefined) document.getElementById('save-dup-val').value = cfg.save_dup_txt ? 'true' : 'false';
+
+  // Settings modal mirrors
+  set('s-sleep',        cfg.sleep_seconds);
+  set('s-save-every',   cfg.save_every);
+  set('s-lang',         cfg.language);
+  set('s-auto-update',  cfg.auto_update);
+  set('s-upd-interval', cfg.update_interval);
+  set('s-show-price',   cfg.show_price);
+  set('s-auto-rm',      cfg.auto_rm_dup);
+  set('s-dont-ask',     cfg.dont_ask_dup);
+  set('s-save-dup',     cfg.save_dup_txt);
+
+  // Last used paths
+  if (cfg.last_url)  set('url',       cfg.last_url);
+  // xlsx path auto-managed, no sidebar field
   if (cfg.last_txt) {
-    document.getElementById('txt-path').value = cfg.last_txt;
-    // Auto-reload last file
-    if (cfg.last_txt_type && cfg.last_txt) {
-      loadFile(cfg.last_txt, cfg.last_txt_type || 'txt', 0);
-    }
+    set('txt-path', cfg.last_txt);
+    if (cfg.last_txt_type) loadFile(cfg.last_txt, cfg.last_txt_type, 0);
   }
-  if (cfg.language)        document.getElementById('s-lang').value = cfg.language;
-  if (cfg.theme)           document.getElementById('s-theme').value = cfg.theme;
-  if (cfg.auto_update !== undefined) {
-    document.getElementById('s-auto-update').checked = cfg.auto_update;
-    toggleManualUpdateBtn();
-  }
-  if (cfg.update_interval) document.getElementById('s-upd-interval').value = cfg.update_interval;
-  if (cfg.show_price !== undefined) document.getElementById('s-show-price').checked = cfg.show_price;
-  if (cfg.auto_rm_dup !== undefined) document.getElementById('s-auto-rm').checked = cfg.auto_rm_dup;
-  if (cfg.dont_ask_dup !== undefined) document.getElementById('s-dont-ask').checked = cfg.dont_ask_dup;
-  if (cfg.save_dup_txt !== undefined) document.getElementById('s-save-dup').checked = cfg.save_dup_txt;
+
+  // Version display
   if (cfg.app_version) {
     const el = document.getElementById('app-version');
-    el.textContent = 'v' + cfg.app_version;
-    el.title = 'CikkChecker v' + cfg.app_version;
+    if (el) { el.textContent = 'v' + cfg.app_version; el.title = 'CikkChecker v' + cfg.app_version; }
   }
+
+  // Sync conditional UI
   toggleLogin();
+  toggleManualUpdateBtn();
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1393,6 +1541,95 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
+<!-- ══ START CONFIG MODAL ══════════════════════════════════════════════ -->
+<div class="overlay" id="start-modal-overlay" onclick="closeStartModalIfBg(event)">
+  <div class="start-modal">
+    <div class="start-modal-hdr">
+      <span style="font-size:20px">⚙</span>
+      <div class="start-modal-title">Indítás előtt</div>
+      <span style="font-size:11px;color:var(--text3)">minden indításnál</span>
+    </div>
+    <div class="start-modal-body">
+
+      <!-- Speed + save interval -->
+      <div class="sm-row2">
+        <div class="sm-field">
+          <label>Lekérések közt (mp)
+            <span class="tip" data-tip="Várakozás két lekérés között.&#10;Ajánlott: 0.5–2 mp.">?</span>
+          </label>
+          <input type="text" id="sm-sleep" value="0.8"
+            style="width:100%;padding:8px 10px;background:var(--input-bg);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-size:13px;outline:none">
+        </div>
+        <div class="sm-field">
+          <label>Mentési köz (db)
+            <span class="tip" data-tip="Minden N. elem után CSV mentés.&#10;Pl. 100 = 100 elemenként.">?</span>
+          </label>
+          <input type="text" id="sm-save-every" value="100"
+            style="width:100%;padding:8px 10px;background:var(--input-bg);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-size:13px;outline:none">
+        </div>
+      </div>
+
+      <!-- Sort order -->
+      <div class="sm-field">
+        <label>Sorrend</label>
+        <select id="sm-sort" style="width:100%;padding:8px 10px;background:var(--input-bg);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-size:13px;outline:none;appearance:none;cursor:pointer">
+          <option value="abc">ABC (A→Z)</option>
+          <option value="abc_desc">ABC (Z→A)</option>
+          <option value="num">Szám (0→9)</option>
+          <option value="num_desc">Szám (9→0)</option>
+          <option value="none">Eredeti sorrend</option>
+        </select>
+      </div>
+
+      <!-- Duplicate options with modern toggle -->
+      <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:12px 14px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Duplikátumok</div>
+
+        <div class="chk-row">
+          <div class="chk-label">
+            <span>Auto eltávolítás</span>
+            <small>Azonos cikkszámokból csak 1 marad</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sm-auto-rm">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="chk-row">
+          <div class="chk-label">
+            <span>Ne kérdezzen rá</span>
+            <small>Automatikusan alkalmazza a fenti beállítást</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sm-dont-ask">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="chk-row">
+          <div class="chk-label">
+            <span>Duplikátumok mentése TXT-be</span>
+            <small>duplicates.txt a kimenet mellé</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sm-save-dup" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="start-modal-footer">
+      <button class="btn btn-secondary" onclick="closeStartModal()">Mégse</button>
+      <button class="btn btn-start" onclick="confirmStart()"
+        style="background:linear-gradient(135deg,var(--accent),#5B21B6);box-shadow:0 4px 20px rgba(123,92,240,0.4)">
+        ▶  Indítás
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden print area for PDF export -->
 <div id="print-area" style="display:none"></div>
 

