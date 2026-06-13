@@ -5,42 +5,48 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Verzio (pl. v2.0.1)'
+        required: true
+        default: 'v2.0.0'
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Tag meghatározása
-        id: tag
+      - name: Tag es verzio beallitasa
         shell: bash
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
           else
-            echo "tag=v-manual-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           fi
 
-      - name: Tag létrehozása (ha kézi indítás)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Tag letrehozasa (kezzel inditasnal)
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ github.event.inputs.version }}"
+          git push origin "${{ github.event.inputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag ${{ steps.tag.outputs.tag }}
-          git push origin ${{ steps.tag.outputs.tag }}
 
-      - name: Python telepítése
+      - name: Python telepitese
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Rust telepítése
+      - name: Rust telepitese
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust build cache
@@ -48,7 +54,7 @@ jobs:
         with:
           workspaces: "checker_core_src -> target"
 
-      - name: checker_core.exe fordítása
+      - name: checker_core.exe forditasa
         shell: cmd
         run: |
           cd checker_core_src
@@ -59,34 +65,32 @@ jobs:
         shell: cmd
         run: pip install customtkinter pillow openpyxl requests pystray pyinstaller
 
-      - name: app.exe buildelése (PyInstaller)
+      - name: app.exe buildelese
         shell: cmd
         run: |
           pyinstaller --onefile --noconsole --name "CikkChecker" app.py
           copy dist\CikkChecker.exe CikkChecker_app.exe
 
-      - name: Inno Setup telepítő készítése
+      - name: Inno Setup telepito
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           path: installer.iss
 
-      - name: GitHub Release létrehozása
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          files: Output/CikkCheckerSetup.exe
-          name: "CikkChecker ${{ steps.tag.outputs.tag }}"
-          body: |
-            ## CikkChecker ${{ steps.tag.outputs.tag }}
+      - name: GitHub Release letrehozasa (gh cli)
+        shell: bash
+        run: |
+          gh release create "${{ env.RELEASE_TAG }}" \
+            "Output/CikkCheckerSetup.exe" \
+            --title "CikkChecker ${{ env.RELEASE_TAG }}" \
+            --notes "## CikkChecker ${{ env.RELEASE_TAG }}
 
-            ### Telepítés
-            1. Töltsd le a `CikkCheckerSetup.exe` fájlt
-            2. Futtasd telepítőként
-            3. Kész – asztali parancsikonból indítható
+          ### Telepites
+          1. Töltsd le a CikkCheckerSetup.exe fajlt
+          2. Futtasd telepitokent
+          3. Kesz - asztali parancsikonbol inditható
 
-            ### Rendszerkövetelmény
-            - Windows 10 / 11 (64-bit)
-          draft: false
-          prerelease: false
+          ### Rendszerkovetelmenyek
+          - Windows 10 / 11 (64-bit)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
