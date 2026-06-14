@@ -535,12 +535,23 @@ class Api:
             # Use a .bat launcher with delay so the app can fully close
             # before the installer touches any DLL files
             bat_path = os.path.join(tmp_dir, "cikkchecker_update.bat")
+            # Find the installed CikkChecker.exe path to restart after update
+            app_exe = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
+            # If running as PyInstaller bundle, exe is sys.executable
+            # If running as script, find the CikkChecker.exe in same dir
+            if not getattr(sys, "frozen", False):
+                app_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "CikkChecker.exe")
+
             bat = (
                 "@echo off\n"
-                ":: Varunk amig az app teljesen bezarul es elengedi a DLL-eket\n"
+                ":: Varunk amig az app teljesen bezarul\n"
                 "timeout /t 4 /nobreak > nul\n"
-                ":: Csendes telepites - nincs ablak, minden automatikusan elfogadva\n"
+                ":: Csendes telepites\n"
                 f'start "" /wait "{tmp}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS\n'
+                ":: Varunk hogy a telepito befejezze\n"
+                "timeout /t 3 /nobreak > nul\n"
+                ":: Ujrainditjuk az appot\n"
+                f'if exist "{app_exe}" start "" "{app_exe}"\n'
                 ":: Self-delete\n"
                 "del \"%~f0\"\n"
             )
