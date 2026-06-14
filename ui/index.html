@@ -273,8 +273,8 @@ select option { background:var(--select-opt); color:var(--text); }
 .s-group:last-child { margin-bottom:0; }
 .s-group h3 { font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:2px; }
 .s-row { display:flex;align-items:center;justify-content:space-between;padding:6px 0; }
-.s-label { font-size:12px;color:var(--text); }
-.s-desc  { font-size:10px;color:var(--text3);margin-top:1px; }
+.s-label { font-size:12px;color:var(--text);font-weight:500; }
+.s-desc  { font-size:10px;color:var(--text2);margin-top:2px; }
 .s-select { width:130px;font-size:11px; }
 
 /* Start modal */
@@ -536,16 +536,16 @@ select option { background:var(--select-opt); color:var(--text); }
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
       <div class="sm-row2">
         <div>
-          <div class="sm-lbl">Lekérések közt (mp) <span class="tip" data-tip="Várakozás két lekérés között.&#10;Ajánlott: 0.5–2 mp.">?</span></div>
+          <div class="sm-lbl" data-i18n="lbl_sleep">Lekérések közt (mp) <span class="tip" data-tip="Várakozás két lekérés között.&#10;Ajánlott: 0.5–2 mp.">?</span></div>
           <input class="sm-input" type="text" id="sm-sleep" value="0.8">
         </div>
         <div>
-          <div class="sm-lbl">Mentési köz (db) <span class="tip" data-tip="Minden N. elem után CSV mentés.&#10;Pl. 100 = minden 100 elemnél.">?</span></div>
+          <div class="sm-lbl" data-i18n="lbl_save_every">Mentési köz (db) <span class="tip" data-tip="Minden N. elem után CSV mentés.&#10;Pl. 100 = minden 100 elemnél.">?</span></div>
           <input class="sm-input" type="text" id="sm-save-every" value="100">
         </div>
       </div>
       <div>
-        <div class="sm-lbl">Sorrend</div>
+        <div class="sm-lbl" data-i18n="lbl_sort">Sorrend</div>
         <select id="sm-sort" class="sm-input">
           <option value="abc">ABC (A→Z)</option>
           <option value="abc_desc">ABC (Z→A)</option>
@@ -555,17 +555,17 @@ select option { background:var(--select-opt); color:var(--text); }
         </select>
       </div>
       <div class="dup-box">
-        <div class="dup-box-title">Duplikátumok <span class="tip" data-tip="Azonos cikkszámok kezelése.">?</span></div>
+        <div class="dup-box-title" data-i18n="lbl_duplicates_title">Duplikátumok <span class="tip" data-tip="Azonos cikkszámok kezelése.">?</span></div>
         <div class="chk-row">
-          <div class="chk-info"><span>Auto eltávolítás</span><small>Azonos cikkszámokból csak 1 marad</small></div>
+          <div class="chk-info"><span data-i18n="lbl_auto_rm">Auto eltávolítás</span><small>Azonos cikkszámokból csak 1 marad</small></div>
           <label class="toggle"><input type="checkbox" id="sm-auto-rm"><span class="toggle-sl"></span></label>
         </div>
         <div class="chk-row">
-          <div class="chk-info"><span>Ne kérdezzen rá</span><small>Automatikusan alkalmazza a fenti beállítást</small></div>
+          <div class="chk-info"><span data-i18n="lbl_dont_ask">Ne kérdezzen rá</span><small>Automatikusan alkalmazza a fenti beállítást</small></div>
           <label class="toggle"><input type="checkbox" id="sm-dont-ask"><span class="toggle-sl"></span></label>
         </div>
         <div class="chk-row">
-          <div class="chk-info"><span>Duplikátumok TXT-be</span><small>duplicates.txt a kimenet mellé</small></div>
+          <div class="chk-info"><span data-i18n="lbl_save_dup">Duplikátumok TXT-be</span><small>duplicates.txt a kimenet mellé</small></div>
           <label class="toggle"><input type="checkbox" id="sm-save-dup" checked><span class="toggle-sl"></span></label>
         </div>
       </div>
@@ -589,11 +589,14 @@ select option { background:var(--select-opt); color:var(--text); }
       <div class="s-group">
         <h3 data-i18n="sec_appearance">Megjelenés</h3>
         <div class="s-row">
-          <div><div class="s-label">Téma</div></div>
-          <select id="s-theme" class="s-select"><option value="dark">🌙 Sötét</option><option value="light">☀️ Világos</option></select>
+          <div><div class="s-label" data-i18n="lbl_theme">Téma</div></div>
+          <select id="s-theme" class="s-select">
+  <option value="dark" data-i18n="opt_dark">🌙 Sötét</option>
+  <option value="light" data-i18n="opt_light">☀️ Világos</option>
+</select>
         </div>
         <div class="s-row">
-          <div><div class="s-label" data-i18n="sec_language">Nyelv</div></div>
+          <div><div class="s-label" data-i18n="lbl_language">Nyelv</div></div>
           <select id="s-lang" class="s-select">
             <option value="hu">🇭🇺 Magyar</option>
             <option value="en">🇬🇧 English</option>
@@ -606,22 +609,22 @@ select option { background:var(--select-opt); color:var(--text); }
         <h3 data-i18n="sec_updates">Frissítések</h3>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Automatikus frissítés</div>
+            <div class="s-label" data-i18n="lbl_auto_update">Automatikus frissítés</div>
             <span class="tip" data-tip="Indításkor ellenőrzi a GitHub-ot.">?</span>
           </div>
           <label class="toggle"><input type="checkbox" id="s-auto-update" checked onchange="toggleManualUpdateBtn()"><span class="toggle-sl"></span></label>
         </div>
         <div class="s-row" id="upd-interval-row">
-          <div><div class="s-label">Ellenőrzés gyakorisága</div></div>
+          <div><div class="s-label" data-i18n="lbl_update_freq">Ellenőrzés gyakorisága</div></div>
           <select id="s-upd-interval" class="s-select">
-            <option value="on_start">Indításkor</option>
-            <option value="daily">Naponta</option>
-            <option value="never">Soha</option>
+            <option value="on_start" data-i18n="opt_on_start">Indításkor</option>
+            <option value="daily" data-i18n="opt_daily">Naponta</option>
+            <option value="never" data-i18n="opt_never">Soha</option>
           </select>
         </div>
         <div class="s-row" id="manual-update-row" style="display:none">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Kézi frissítés keresése</div>
+            <div class="s-label" data-i18n="lbl_manual_update">Kézi frissítés keresése</div>
             <span class="tip" data-tip="Az auto keresés ki van kapcsolva.">?</span>
           </div>
           <button class="btn-sec" onclick="checkUpdate()" style="width:auto;padding:5px 12px;font-size:11px">🔄 Keresés</button>
@@ -631,21 +634,21 @@ select option { background:var(--select-opt); color:var(--text); }
         <h3 data-i18n="sec_defaults">Alapértékek</h3>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Lekérések közt (mp)</div>
+            <div class="s-label" data-i18n="lbl_sleep">Lekérések közt (mp)</div>
             <span class="tip" data-tip="Ajánlott: 0.5–2 mp.&#10;Túl alacsony érték terheli a szervert.">?</span>
           </div>
           <input type="text" id="s-sleep" style="width:80px;text-align:center;padding:6px 8px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none">
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Mentési köz (db)</div>
+            <div class="s-label" data-i18n="lbl_save_every">Mentési köz (db)</div>
             <span class="tip" data-tip="Minden N. cikkszám után ment.&#10;Pl. 100 = 100 elemenként.">?</span>
           </div>
           <input type="text" id="s-save-every" style="width:80px;text-align:center;padding:6px 8px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none">
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Ár lekérés</div>
+            <div class="s-label" data-i18n="lbl_price">Ár lekérés</div>
             <span class="tip" data-tip="Árakat is letölti a keresés során.">?</span>
           </div>
           <label class="toggle"><input type="checkbox" id="s-show-price" checked><span class="toggle-sl"></span></label>
@@ -655,21 +658,21 @@ select option { background:var(--select-opt); color:var(--text); }
         <h3 data-i18n="sec_duplicates">Duplikátumok</h3>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Auto eltávolítás</div>
+            <div class="s-label" data-i18n="lbl_auto_rm">Auto eltávolítás</div>
             <span class="tip" data-tip="Azonos cikkszámokból csak egyet tart meg.">?</span>
           </div>
           <label class="toggle"><input type="checkbox" id="s-auto-rm"><span class="toggle-sl"></span></label>
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Ne kérdezzen rá</div>
+            <div class="s-label" data-i18n="lbl_dont_ask">Ne kérdezzen rá</div>
             <span class="tip" data-tip="Nem ugrik fel párbeszédablak,&#10;automatikusan alkalmazza a beállítást.">?</span>
           </div>
           <label class="toggle"><input type="checkbox" id="s-dont-ask"><span class="toggle-sl"></span></label>
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label">Duplikátumok TXT-be</div>
+            <div class="s-label" data-i18n="lbl_save_dup">Duplikátumok TXT-be</div>
             <span class="tip" data-tip="Menti a duplicates.txt fájlba.">?</span>
           </div>
           <label class="toggle"><input type="checkbox" id="s-save-dup" checked><span class="toggle-sl"></span></label>
@@ -729,6 +732,16 @@ const TRANSLATIONS = {
     detecting:"⟳ Detektálás...", login_auto_yes:"🔒 Bejelentkezés szükséges (auto)",
     login_auto_no:"🔓 Nem szükséges (auto)", login_check_fail:"⚠ Nem sikerült ellenőrizni",
     col_price:"Ár",
+    lbl_theme:"Téma", lbl_language:"Nyelv",
+    lbl_auto_update:"Automatikus frissítés keresése",
+    lbl_update_freq:"Ellenőrzés gyakorisága",
+    lbl_manual_update:"Kézi frissítés keresése",
+    lbl_sleep:"Lekérések közt (mp)", lbl_save_every:"Mentési köz (db)",
+    lbl_price:"Ár lekérés", lbl_auto_rm:"Auto eltávolítás",
+    lbl_dont_ask:"Ne kérdezzen rá", lbl_save_dup:"Duplikátumok TXT-be",
+    lbl_sort:"Sorrend", lbl_duplicates_title:"Duplikátumok",
+    opt_on_start:"Indításkor", opt_daily:"Naponta", opt_never:"Soha",
+    opt_dark:"🌙 Sötét", opt_light:"☀️ Világos",
   },
   en: {
     s_connection:"Connection", s_login:"Login", s_source:"Article code source",
@@ -748,6 +761,16 @@ const TRANSLATIONS = {
     detecting:"⟳ Detecting...", login_auto_yes:"🔒 Login required (auto)",
     login_auto_no:"🔓 No login needed (auto)", login_check_fail:"⚠ Could not verify",
     col_price:"Price",
+    lbl_theme:"Theme", lbl_language:"Language",
+    lbl_auto_update:"Automatic update check",
+    lbl_update_freq:"Check frequency",
+    lbl_manual_update:"Manual update check",
+    lbl_sleep:"Delay between requests (s)", lbl_save_every:"Save interval (items)",
+    lbl_price:"Fetch prices", lbl_auto_rm:"Auto remove duplicates",
+    lbl_dont_ask:"Don't ask again", lbl_save_dup:"Save duplicates to TXT",
+    lbl_sort:"Sort order", lbl_duplicates_title:"Duplicates",
+    opt_on_start:"On startup", opt_daily:"Daily", opt_never:"Never",
+    opt_dark:"🌙 Dark", opt_light:"☀️ Light",
   },
   de: {
     s_connection:"Verbindung", s_login:"Anmeldung", s_source:"Artikelnummern Quelle",
@@ -767,6 +790,16 @@ const TRANSLATIONS = {
     detecting:"⟳ Erkennung...", login_auto_yes:"🔒 Anmeldung erforderlich (auto)",
     login_auto_no:"🔓 Keine Anmeldung (auto)", login_check_fail:"⚠ Konnte nicht prüfen",
     col_price:"Preis",
+    lbl_theme:"Thema", lbl_language:"Sprache",
+    lbl_auto_update:"Automatische Update-Prüfung",
+    lbl_update_freq:"Prüfhäufigkeit",
+    lbl_manual_update:"Manuelle Update-Prüfung",
+    lbl_sleep:"Verzögerung (Sek.)", lbl_save_every:"Speicherintervall (Eintr.)",
+    lbl_price:"Preise abrufen", lbl_auto_rm:"Duplikate automatisch entfernen",
+    lbl_dont_ask:"Nicht mehr fragen", lbl_save_dup:"Duplikate als TXT speichern",
+    lbl_sort:"Reihenfolge", lbl_duplicates_title:"Duplikate",
+    opt_on_start:"Beim Start", opt_daily:"Täglich", opt_never:"Nie",
+    opt_dark:"🌙 Dunkel", opt_light:"☀️ Hell",
   },
   sk: {
     s_connection:"Pripojenie", s_login:"Prihlásenie", s_source:"Zdroj kódov",
@@ -786,6 +819,16 @@ const TRANSLATIONS = {
     detecting:"⟳ Zisťovanie...", login_auto_yes:"🔒 Prihlásenie potrebné (auto)",
     login_auto_no:"🔓 Prihlásenie nepotrebné (auto)", login_check_fail:"⚠ Overenie zlyhalo",
     col_price:"Cena",
+    lbl_theme:"Téma", lbl_language:"Jazyk",
+    lbl_auto_update:"Automatická kontrola aktualizácií",
+    lbl_update_freq:"Frekvencia kontroly",
+    lbl_manual_update:"Manuálna kontrola aktualizácií",
+    lbl_sleep:"Oneskorenie (s)", lbl_save_every:"Interval uloženia (pol.)",
+    lbl_price:"Načítať ceny", lbl_auto_rm:"Automatické odstránenie",
+    lbl_dont_ask:"Nepýtať sa znova", lbl_save_dup:"Uložiť duplikáty do TXT",
+    lbl_sort:"Poradie", lbl_duplicates_title:"Duplikáty",
+    opt_on_start:"Pri spustení", opt_daily:"Denne", opt_never:"Nikdy",
+    opt_dark:"🌙 Tmavý", opt_light:"☀️ Svetlý",
   },
 };
 
