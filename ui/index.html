@@ -271,11 +271,16 @@ select option { background:var(--select-opt); color:var(--text); }
 .settings-modal { width:500px;max-height:80vh; }
 .s-group { display:flex;flex-direction:column;gap:10px;margin-bottom:20px; }
 .s-group:last-child { margin-bottom:0; }
-.s-group h3 { font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:2px; }
+.s-group h3 { font-size:9px;color:#7B8CB0;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:4px;font-weight:700; }
+[data-theme="light"] .s-group h3 { color:#6B5FB0; }
 .s-row { display:flex;align-items:center;justify-content:space-between;padding:6px 0; }
-.s-label { font-size:12px;color:var(--text);font-weight:500;display:block; }
-.s-desc  { font-size:10px;color:var(--text2);margin-top:2px; }
+.s-label { font-size:12px;color:#E8EBF0;font-weight:500;display:block; }
+.s-desc  { font-size:10px;color:#9BA3B4;margin-top:2px; }
 .s-row > div:first-child { flex:1;min-width:0;margin-right:12px; }
+[data-theme="light"] .s-label { color:#1E1240; }
+[data-theme="light"] .s-desc  { color:#4B3F80; }
+.modal-body { color:#E8EBF0; }
+[data-theme="light"] .modal-body { color:#1E1240; }
 .s-select { width:130px;font-size:11px; }
 
 /* Start modal */
