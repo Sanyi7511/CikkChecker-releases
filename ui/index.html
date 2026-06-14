@@ -1577,6 +1577,27 @@ function applyConfig(cfg) {
     if(el){el.textContent='v'+cfg.app_version;el.title='CikkChecker v'+cfg.app_version;}
   }
   if (cfg.language) applyLanguage(cfg.language);
+  // Restore scheduler state
+  if (cfg.scheduler) {
+    const sched = cfg.scheduler;
+    const schedEl = document.getElementById('sched-enabled');
+    if (schedEl) {
+      schedEl.checked = Boolean(sched.enabled);
+      const schedCfg = document.getElementById('sched-config');
+      if (schedCfg) schedCfg.style.display = sched.enabled ? 'flex' : 'none';
+      if (sched.time) {
+        const timeEl = document.getElementById('sched-time');
+        if (timeEl) timeEl.value = sched.time;
+      }
+      if (sched.days && Array.isArray(sched.days)) {
+        document.querySelectorAll('.day-btn').forEach(btn => {
+          const day = parseInt(btn.getAttribute('data-day'));
+          btn.classList.toggle('active', sched.days.includes(day));
+        });
+      }
+      if (sched.enabled) startScheduler();
+    }
+  }
   toggleLogin(); toggleManualUpdateBtn();
 }
 
@@ -1678,10 +1699,9 @@ function recheckMissing() {
     const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
     if (avail === 'Nincs' || avail === 'Ismeretlen') row.remove();
   });
-  // Put codes into manual textarea and start
-  document.getElementById('manual-codes').value = missing.join('
-');
+  // Pass codes as sourceData only — avoid duplication with manual textarea
   state.sourceData = missing;
+  document.getElementById('manual-codes').value = '';  // clear to avoid double
   showToast(`${missing.length} cikk újraellenőrzése indul`, '🔁');
   openStartModal();
 }
@@ -1790,6 +1810,8 @@ function updateSchedulerNext() {
     : 'Nincs aktív nap';
 }
 
+let _lastScheduledFire = '';
+
 function startScheduler() {
   stopScheduler();
   updateSchedulerNext();
@@ -1799,13 +1821,15 @@ function startScheduler() {
     if (!time || !days.length || !document.getElementById('sched-enabled').checked) return;
     const now = new Date();
     const [h,m] = time.split(':').map(Number);
-    if (now.getHours()===h && now.getMinutes()===m && days.includes(now.getDay())) {
+    const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${h}-${m}`;
+    if (now.getHours()===h && now.getMinutes()===m && days.includes(now.getDay()) && key !== _lastScheduledFire) {
+      _lastScheduledFire = key;
       if (!state.running) {
         onLog('[⏰] Ütemezett futtatás indul...');
         runProcess(false);
       }
     }
-  }, 30000); // check every 30 seconds
+  }, 20000); // check every 20 seconds
 }
 
 function stopScheduler() {
@@ -1821,7 +1845,7 @@ function getExtraUrls() {
 // Override onDone to handle multi-site sequential runs
 let _multiSiteQueue = [];
 let _multiSiteResults = {};
-let _currentSiteUrl = '';
+let _originalUrl = '';  // URL before multi-site run
 
 function onDone() {
   onStatus('Kész ✓');
@@ -1846,7 +1870,6 @@ function onDone() {
   if (_multiSiteQueue.length > 0) {
     // Run next site
     const nextUrl = _multiSiteQueue.shift();
-    _currentSiteUrl = nextUrl;
     onLog(`[🌐] Következő weboldal: ${nextUrl}`);
     document.getElementById('url').value = nextUrl;
     setTimeout(() => runProcess(true), 1000); // skip_dup, keep same codes
@@ -1855,9 +1878,10 @@ function onDone() {
     state.running = false; state.canContinue = false;
     updateStartBtn();
     document.getElementById('btn-start').disabled = false;
-    if (_currentSiteUrl) {
-      // Was multi-site — reset URL
-      document.getElementById('url').value = _currentSiteUrl || document.getElementById('url').value;
+    if (_originalUrl) {
+      // Restore to original main URL after multi-site
+      document.getElementById('url').value = _originalUrl;
+      _originalUrl = '';
     }
   }
 }
@@ -1865,10 +1889,10 @@ function onDone() {
 // Override startAction to handle multi-site
 const _originalConfirmStart = window.confirmStart;
 function confirmStart() {
-  _currentSiteUrl = '';
   const extraUrls = getExtraUrls();
+  const mainUrl = document.getElementById('url').value.trim();
+  _originalUrl = mainUrl; // save original URL to restore after multi-site
   if (extraUrls.length > 0) {
-    const mainUrl = document.getElementById('url').value.trim();
     _multiSiteQueue = extraUrls; // queue the extra ones
     onLog(`[🌐] ${extraUrls.length + 1} weboldal sorban ellenőrizve`);
   } else {
@@ -1890,8 +1914,7 @@ window.addEventListener('load', async () => {
   setTimeout(loadHistory, 500);
 });
 
-// Enable recheck button when there are results
-const _origAddRow = window.addRow;
+// Recheck button enabled by onDone() after each completed run
 </script>
 </body>
 </html>
