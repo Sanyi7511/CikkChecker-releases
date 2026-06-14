@@ -1227,7 +1227,46 @@ function toggleLogin() {
   document.getElementById('login-section-hdr').style.display = show ? 'block' : 'none';
 }
 
-function applyTheme(t) { document.documentElement.setAttribute('data-theme', t || 'dark'); }
+function applyTheme(theme) {
+  const t = theme || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+
+  const dark = t !== 'light';
+
+  // Modal backgrounds — CSS vars sometimes don't re-render in pywebview
+  const modalBg   = dark ? 'linear-gradient(145deg,rgba(26,15,60,.98),rgba(13,8,33,.98))'
+                          : 'linear-gradient(145deg,rgba(230,228,255,.98),rgba(240,242,255,.98))';
+  document.querySelectorAll('.modal').forEach(m => m.style.background = modalBg);
+
+  // Modal text colors
+  const bodyColor = dark ? '#E8EBF0' : '#1E1240';
+  document.querySelectorAll('.modal-body,.modal-hdr').forEach(m => m.style.color = bodyColor);
+
+  // s-label explicit color
+  document.querySelectorAll('.s-label').forEach(el => el.style.color = bodyColor);
+  document.querySelectorAll('.s-group h3').forEach(el => el.style.color = dark ? '#7B8CB0' : '#6B5FB0');
+  document.querySelectorAll('.s-desc').forEach(el => el.style.color = dark ? '#9BA3B4' : '#4B3F80');
+  document.querySelectorAll('.modal-title').forEach(el => el.style.color = bodyColor);
+  document.querySelectorAll('.modal-close').forEach(el => el.style.color = dark ? '#4A5568' : '#9388B8');
+
+  // Overlay background (settings, start modal, etc.)
+  const inputBg    = dark ? 'rgba(0,0,0,0.35)'        : 'rgba(255,255,255,0.8)';
+  const inputBdr   = dark ? 'rgba(255,255,255,0.10)'  : 'rgba(100,80,200,0.15)';
+  const inputColor = bodyColor;
+  document.querySelectorAll('.modal input[type=text],.modal input[type=password],.modal select,.sm-input').forEach(el => {
+    el.style.background   = inputBg;
+    el.style.borderColor  = inputBdr;
+    el.style.color        = inputColor;
+  });
+
+  // Sidebar background
+  const sidebarBg = dark ? 'rgba(13,8,33,0.85)' : 'rgba(230,228,255,0.9)';
+  const sb = document.querySelector('.sb');
+  if (sb) sb.style.background = sidebarBg;
+
+  // Main app background blobs opacity
+  document.querySelectorAll('.blob').forEach(b => b.style.opacity = dark ? '0.3' : '0.18');
+}
 
 function updateStats() {
   document.getElementById('s-van').textContent   = state.stats.van;
