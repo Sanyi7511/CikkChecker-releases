@@ -273,8 +273,9 @@ select option { background:var(--select-opt); color:var(--text); }
 .s-group:last-child { margin-bottom:0; }
 .s-group h3 { font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:2px; }
 .s-row { display:flex;align-items:center;justify-content:space-between;padding:6px 0; }
-.s-label { font-size:12px;color:var(--text);font-weight:500; }
+.s-label { font-size:12px;color:var(--text);font-weight:500;display:block; }
 .s-desc  { font-size:10px;color:var(--text2);margin-top:2px; }
+.s-row > div:first-child { flex:1;min-width:0;margin-right:12px; }
 .s-select { width:130px;font-size:11px; }
 
 /* Start modal */
@@ -678,14 +679,14 @@ select option { background:var(--select-opt); color:var(--text); }
         <h3 data-i18n="sec_appearance">Megjelenés</h3>
         <div class="s-row">
           <div><div class="s-label" data-i18n="lbl_theme">Téma</div></div>
-          <select id="s-theme" class="s-select">
+          <select id="s-theme" class="s-select" onchange="applyTheme(this.value)">
   <option value="dark" data-i18n="opt_dark">🌙 Sötét</option>
   <option value="light" data-i18n="opt_light">☀️ Világos</option>
 </select>
         </div>
         <div class="s-row">
           <div><div class="s-label" data-i18n="lbl_language">Nyelv</div></div>
-          <select id="s-lang" class="s-select">
+          <select id="s-lang" class="s-select" onchange="applyLanguage(this.value)">
             <option value="hu">🇭🇺 Magyar</option>
             <option value="en">🇬🇧 English</option>
             <option value="de">🇩🇪 Deutsch</option>
