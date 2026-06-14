@@ -122,6 +122,7 @@ class Api:
     def get_config(self):
         cfg = dict(self._cfg)
         cfg["app_version"] = APP_VERSION
+        cfg["scheduler"]   = self.get_scheduler()
         return cfg
 
     def save_config(self, cfg):
@@ -614,6 +615,71 @@ class Api:
         except Exception as e:
             self._js(f"onLog({json.dumps(f'[ERR] Frissítési hiba: {e}')})")
             self._js("onUpdateFailed()")
+
+    # ── History ──────────────────────────────────────────────────────────
+    def _history_path(self):
+        hist_dir = os.path.join(os.path.expanduser("~"), "AppData", "Local",
+                                "CikkChecker") if sys.platform=="win32" else                    os.path.join(os.path.expanduser("~"), ".cikkchecker")
+        os.makedirs(hist_dir, exist_ok=True)
+        return os.path.join(hist_dir, "history.json")
+
+    def get_history(self):
+        try:
+            p = self._history_path()
+            if os.path.exists(p):
+                with open(p, encoding="utf-8") as f:
+                    return json.load(f)
+        except: pass
+        return []
+
+    def save_history(self, entry):
+        try:
+            history = self.get_history()
+            history.append(entry)
+            history = history[-100:]  # keep last 100 runs
+            with open(self._history_path(), "w", encoding="utf-8") as f:
+                json.dump(history, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self._js(f"onLog({json.dumps(f'[WARN] Előzmény mentés hiba: {e}')})")
+        return True
+
+    # ── Windows notification ──────────────────────────────────────────────
+    def notify(self, message: str, subtitle: str = ""):
+        if sys.platform != "win32":
+            return True
+        try:
+            # Use PowerShell toast notification
+            ps_script = f"""
+Add-Type -AssemblyName System.Windows.Forms
+[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
+$notify = New-Object System.Windows.Forms.NotifyIcon
+$notify.Icon = [System.Drawing.SystemIcons]::Information
+$notify.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+$notify.BalloonTipText = '{message.replace("'", "")}'
+$notify.BalloonTipTitle = 'CikkChecker'
+$notify.Visible = $True
+$notify.ShowBalloonTip(5000)
+Start-Sleep -Milliseconds 5500
+$notify.Dispose()
+"""
+            subprocess.Popen(
+                ["powershell", "-NonInteractive", "-WindowStyle", "Hidden",
+                 "-Command", ps_script],
+                creationflags=0x08000000,
+                close_fds=True
+            )
+        except Exception as e:
+            pass  # Notification is optional, never crash for it
+        return True
+
+    # ── Scheduler config ──────────────────────────────────────────────────
+    def save_scheduler(self, config):
+        self._cfg["scheduler"] = config
+        save_config_file(self._cfg)
+        return True
+
+    def get_scheduler(self):
+        return self._cfg.get("scheduler", {"enabled": False, "time": "08:00", "days": [1,2,3,4,5]})
 
     # ── JS helper ─────────────────────────────────────────────────────────
     def _js(self, code):

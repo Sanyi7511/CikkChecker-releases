@@ -337,6 +337,56 @@ select option { background:var(--select-opt); color:var(--text); }
   animation:slideUp .25s ease;pointer-events:none; }
 @keyframes slideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 
+/* ── History entries ────────────────────────────────────────────────── */
+.hist-entry {
+  background:var(--glass);border:1px solid var(--border);border-radius:8px;
+  padding:8px 10px;cursor:pointer;transition:all .15s;
+}
+.hist-entry:hover { border-color:var(--accent);background:rgba(123,92,240,.08); }
+.hist-date { font-size:10px;color:var(--text3); }
+.hist-url  { font-size:11px;color:var(--text2);margin:2px 0; white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.hist-stats { display:flex;gap:8px;margin-top:4px; }
+.hist-stat { font-size:10px;font-weight:600; }
+.hist-van   { color:var(--green); }
+.hist-nincs { color:var(--red); }
+.hist-kulso { color:var(--amber); }
+.hist-diff-new   { background:rgba(34,197,94,.15);border-left:3px solid var(--green); }
+.hist-diff-gone  { background:rgba(239,68,68,.15);border-left:3px solid var(--red); }
+
+/* ── Scheduler ────────────────────────────────────────────────────────── */
+.sched-card { background:var(--glass);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px; }
+.day-btns { display:grid;grid-template-columns:repeat(7,1fr);gap:3px; }
+.day-btn { padding:4px 2px;border-radius:5px;font-size:9px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);background:var(--glass);
+  color:var(--text3);transition:all .15s;text-align:center; }
+.day-btn.active { background:rgba(123,92,240,.25);border-color:var(--accent);color:var(--accent2); }
+
+/* ── Filter bar ─────────────────────────────────────────────────────── */
+.filter-bar { display:flex;align-items:center;gap:6px;padding:7px 12px;
+  border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap; }
+.filter-search {
+  flex:1;min-width:120px;padding:5px 10px;font-size:11px;
+  background:var(--input);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);outline:none;transition:border-color .2s; }
+.filter-search:focus { border-color:var(--accent); }
+.filter-search::placeholder { color:var(--text3); }
+.fbtn { padding:4px 10px;border-radius:6px;font-size:10px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);background:var(--glass);
+  color:var(--text3);transition:all .15s;white-space:nowrap; }
+.fbtn:hover { background:rgba(123,92,240,.2);border-color:var(--accent);color:var(--text); }
+.fbtn.active { background:rgba(123,92,240,.25);border-color:var(--accent);color:var(--text); }
+.fbtn.f-van.active   { background:rgba(34,197,94,.2);border-color:var(--green);color:var(--green); }
+.fbtn.f-nincs.active { background:rgba(239,68,68,.2);border-color:var(--red);color:var(--red); }
+.fbtn.f-kulso.active { background:rgba(245,158,11,.2);border-color:var(--amber);color:var(--amber); }
+
+/* ── Recheck button ─────────────────────────────────────────────────────── */
+.btn-recheck { padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600;
+  cursor:pointer;border:1px solid rgba(245,158,11,.3);
+  background:rgba(245,158,11,.1);color:var(--amber);transition:all .15s;white-space:nowrap; }
+.btn-recheck:hover { background:rgba(245,158,11,.25); }
+.btn-recheck:disabled { opacity:.4;cursor:not-allowed; }
+
 /* Print */
 @media print {
   body * { visibility:hidden; }
@@ -430,6 +480,44 @@ select option { background:var(--select-opt); color:var(--text); }
     </div>
     <input type="hidden" id="txt-path">
     <input type="hidden" id="xlsx-path">
+  </div>
+
+  <!-- Scheduler -->
+  <div class="sb-sec" data-i18n="s_scheduler">Ütemező</div>
+  <div class="sched-card">
+    <div class="toggle-row">
+      <span data-i18n="lbl_sched_enable" style="font-size:11px;color:var(--text2)">Automatikus futtatás</span>
+      <label class="toggle"><input type="checkbox" id="sched-enabled" onchange="toggleScheduler()"><span class="toggle-sl"></span></label>
+    </div>
+    <div id="sched-config" style="display:none;flex-direction:column;gap:7px">
+      <div>
+        <div class="sb-lbl" data-i18n="lbl_sched_time">Időpont</div>
+        <input type="time" id="sched-time" value="08:00"
+          style="width:100%;padding:6px 10px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none">
+      </div>
+      <div>
+        <div class="sb-lbl" data-i18n="lbl_sched_days">Napok</div>
+        <div class="day-btns">
+          <div class="day-btn" data-day="1" onclick="toggleDay(this)">H</div>
+          <div class="day-btn active" data-day="2" onclick="toggleDay(this)">K</div>
+          <div class="day-btn active" data-day="3" onclick="toggleDay(this)">Sze</div>
+          <div class="day-btn active" data-day="4" onclick="toggleDay(this)">Cs</div>
+          <div class="day-btn active" data-day="5" onclick="toggleDay(this)">P</div>
+          <div class="day-btn" data-day="6" onclick="toggleDay(this)">Szo</div>
+          <div class="day-btn" data-day="0" onclick="toggleDay(this)">V</div>
+        </div>
+      </div>
+      <div id="sched-next" style="font-size:9px;color:var(--text3);text-align:center"></div>
+    </div>
+  </div>
+
+  <!-- Multi-site -->
+  <div class="sb-sec" data-i18n="s_multisites">Több weboldal</div>
+  <div class="sb-card" id="multisite-card">
+    <div style="font-size:10px;color:var(--text3);margin-bottom:4px" data-i18n="multisite_hint">Soronként 1 URL — az összeset ellenőrzi</div>
+    <textarea id="extra-urls" rows="3"
+      placeholder="https://masikwebshop.hu&#10;https://harmadik.hu"
+      style="background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:11px;padding:6px 8px;resize:none;outline:none;width:100%;line-height:1.5"></textarea>
   </div>
 
   <!-- Hidden setting values -->
@@ -715,120 +803,280 @@ select option { background:var(--select-opt); color:var(--text); }
 // ══ TRANSLATIONS ═════════════════════════════════════════════════════════
 const TRANSLATIONS = {
   hu: {
-    s_connection:"Kapcsolat", s_login:"Bejelentkezés", s_source:"Cikkszám forrás",
-    url_label:"Weboldal URL", login_required:"Bejelentkezés szükséges",
-    username:"Felhasználónév", password:"Jelszó",
-    dz_text:"Húzd ide a fájlt", dz_sub:"TXT · CSV · Excel",
-    stat_total:"Összes", stat_done:"Kész", stat_van:"Van", stat_nincs:"Nincs", stat_kulso:"Külső",
+    s_connection:"Kapcsolat",
+    s_login:"Bejelentkezés",
+    s_source:"Cikkszám forrás",
+    url_label:"Weboldal URL",
+    login_required:"Bejelentkezés szükséges",
+    username:"Felhasználónév",
+    password:"Jelszó",
+    dz_text:"Húzd ide a fájlt",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Összes",
+    stat_done:"Kész",
+    stat_van:"Van",
+    stat_nincs:"Nincs",
+    stat_kulso:"Külső",
     status_waiting:"Várakozás",
-    results_title:"Eredmények", log_title:"Napló", manual_title:"Kézi bevitel",
-    col_code:"Cikkszám", col_avail:"Elérhetőség",
-    btn_start:"▶  Indítás", btn_continue:"▶  Folytatás",
-    btn_stop:"⏹ Stop", btn_restart:"↺ Újra", btn_clear_log:"🗑 Log törlése",
-    exp_copy:"📋 Másolás", exp_csv:"📄 CSV", exp_excel:"📊 Excel", exp_pdf:"🖨 PDF",
-    sec_appearance:"Megjelenés", sec_updates:"Frissítések", sec_defaults:"Alapértékek",
-    sec_duplicates:"Duplikátumok", sec_language:"Nyelv",
-    settings_title:"Beállítások", btn_save:"Mentés", btn_cancel:"Mégse",
-    detecting:"⟳ Detektálás...", login_auto_yes:"🔒 Bejelentkezés szükséges (auto)",
-    login_auto_no:"🔓 Nem szükséges (auto)", login_check_fail:"⚠ Nem sikerült ellenőrizni",
+    results_title:"Eredmények",
+    log_title:"Napló",
+    manual_title:"Kézi bevitel",
+    col_code:"Cikkszám",
+    col_avail:"Elérhetőség",
+    btn_start:"▶  Indítás",
+    btn_continue:"▶  Folytatás",
+    btn_stop:"⏹ Stop",
+    btn_restart:"↺ Újra",
+    btn_clear_log:"🗑 Log törlése",
+    exp_copy:"📋 Másolás",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Megjelenés",
+    sec_updates:"Frissítések",
+    sec_defaults:"Alapértékek",
+    sec_duplicates:"Duplikátumok",
+    sec_language:"Nyelv",
+    settings_title:"Beállítások",
+    btn_save:"Mentés",
+    btn_cancel:"Mégse",
+    detecting:"⟳ Detektálás...",
+    login_auto_yes:"🔒 Bejelentkezés szükséges (auto)",
+    login_auto_no:"🔓 Nem szükséges (auto)",
+    login_check_fail:"⚠ Nem sikerült ellenőrizni",
     col_price:"Ár",
-    lbl_theme:"Téma", lbl_language:"Nyelv",
+    s_scheduler:"Ütemező",
+    s_multisites:"Több weboldal",
+    lbl_sched_enable:"Automatikus futtatás",
+    lbl_sched_time:"Időpont",
+    lbl_sched_days:"Napok",
+    multisite_hint:"Soronként 1 URL — az összeset ellenőrzi",
+    history_title:"Előzmények",
+    lbl_theme:"Téma",
+    lbl_language:"Nyelv",
     lbl_auto_update:"Automatikus frissítés keresése",
     lbl_update_freq:"Ellenőrzés gyakorisága",
     lbl_manual_update:"Kézi frissítés keresése",
-    lbl_sleep:"Lekérések közt (mp)", lbl_save_every:"Mentési köz (db)",
-    lbl_price:"Ár lekérés", lbl_auto_rm:"Auto eltávolítás",
-    lbl_dont_ask:"Ne kérdezzen rá", lbl_save_dup:"Duplikátumok TXT-be",
-    lbl_sort:"Sorrend", lbl_duplicates_title:"Duplikátumok",
-    opt_on_start:"Indításkor", opt_daily:"Naponta", opt_never:"Soha",
-    opt_dark:"🌙 Sötét", opt_light:"☀️ Világos",
+    lbl_sleep:"Lekérések közt (mp)",
+    lbl_save_every:"Mentési köz (db)",
+    lbl_price:"Ár lekérés",
+    lbl_auto_rm:"Auto eltávolítás",
+    lbl_dont_ask:"Ne kérdezzen rá",
+    lbl_save_dup:"Duplikátumok TXT-be",
+    lbl_sort:"Sorrend",
+    lbl_duplicates_title:"Duplikátumok",
+    opt_on_start:"Indításkor",
+    opt_daily:"Naponta",
+    opt_never:"Soha",
+    opt_dark:"🌙 Sötét",
+    opt_light:"☀️ Világos",
   },
   en: {
-    s_connection:"Connection", s_login:"Login", s_source:"Article code source",
-    url_label:"Website URL", login_required:"Login required",
-    username:"Username", password:"Password",
-    dz_text:"Drop file here", dz_sub:"TXT · CSV · Excel",
-    stat_total:"Total", stat_done:"Done", stat_van:"In stock", stat_nincs:"Out of stock", stat_kulso:"External",
+    s_connection:"Connection",
+    s_login:"Login",
+    s_source:"Article code source",
+    url_label:"Website URL",
+    login_required:"Login required",
+    username:"Username",
+    password:"Password",
+    dz_text:"Drop file here",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Total",
+    stat_done:"Done",
+    stat_van:"In stock",
+    stat_nincs:"Out of stock",
+    stat_kulso:"External",
     status_waiting:"Waiting",
-    results_title:"Results", log_title:"Log", manual_title:"Manual codes",
-    col_code:"Article code", col_avail:"Availability",
-    btn_start:"▶  Start", btn_continue:"▶  Continue",
-    btn_stop:"⏹ Stop", btn_restart:"↺ Restart", btn_clear_log:"🗑 Clear log",
-    exp_copy:"📋 Copy", exp_csv:"📄 CSV", exp_excel:"📊 Excel", exp_pdf:"🖨 PDF",
-    sec_appearance:"Appearance", sec_updates:"Updates", sec_defaults:"Defaults",
-    sec_duplicates:"Duplicates", sec_language:"Language",
-    settings_title:"Settings", btn_save:"Save", btn_cancel:"Cancel",
-    detecting:"⟳ Detecting...", login_auto_yes:"🔒 Login required (auto)",
-    login_auto_no:"🔓 No login needed (auto)", login_check_fail:"⚠ Could not verify",
+    results_title:"Results",
+    log_title:"Log",
+    manual_title:"Manual codes",
+    col_code:"Article code",
+    col_avail:"Availability",
+    btn_start:"▶  Start",
+    btn_continue:"▶  Continue",
+    btn_stop:"⏹ Stop",
+    btn_restart:"↺ Restart",
+    btn_clear_log:"🗑 Clear log",
+    exp_copy:"📋 Copy",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Appearance",
+    sec_updates:"Updates",
+    sec_defaults:"Defaults",
+    sec_duplicates:"Duplicates",
+    sec_language:"Language",
+    settings_title:"Settings",
+    btn_save:"Save",
+    btn_cancel:"Cancel",
+    detecting:"⟳ Detecting...",
+    login_auto_yes:"🔒 Login required (auto)",
+    login_auto_no:"🔓 No login needed (auto)",
+    login_check_fail:"⚠ Could not verify",
     col_price:"Price",
-    lbl_theme:"Theme", lbl_language:"Language",
+    s_scheduler:"Scheduler",
+    s_multisites:"Multiple websites",
+    lbl_sched_enable:"Auto run",
+    lbl_sched_time:"Time",
+    lbl_sched_days:"Days",
+    multisite_hint:"One URL per line",
+    history_title:"History",
+    lbl_theme:"Theme",
+    lbl_language:"Language",
     lbl_auto_update:"Automatic update check",
     lbl_update_freq:"Check frequency",
     lbl_manual_update:"Manual update check",
-    lbl_sleep:"Delay between requests (s)", lbl_save_every:"Save interval (items)",
-    lbl_price:"Fetch prices", lbl_auto_rm:"Auto remove duplicates",
-    lbl_dont_ask:"Don't ask again", lbl_save_dup:"Save duplicates to TXT",
-    lbl_sort:"Sort order", lbl_duplicates_title:"Duplicates",
-    opt_on_start:"On startup", opt_daily:"Daily", opt_never:"Never",
-    opt_dark:"🌙 Dark", opt_light:"☀️ Light",
+    lbl_sleep:"Delay between requests (s)",
+    lbl_save_every:"Save interval (items)",
+    lbl_price:"Fetch prices",
+    lbl_auto_rm:"Auto remove duplicates",
+    lbl_dont_ask:"Don't ask again",
+    lbl_save_dup:"Save duplicates to TXT",
+    lbl_sort:"Sort order",
+    lbl_duplicates_title:"Duplicates",
+    opt_on_start:"On startup",
+    opt_daily:"Daily",
+    opt_never:"Never",
+    opt_dark:"🌙 Dark",
+    opt_light:"☀️ Light",
   },
   de: {
-    s_connection:"Verbindung", s_login:"Anmeldung", s_source:"Artikelnummern Quelle",
-    url_label:"Website URL", login_required:"Anmeldung erforderlich",
-    username:"Benutzername", password:"Passwort",
-    dz_text:"Datei hierher ziehen", dz_sub:"TXT · CSV · Excel",
-    stat_total:"Gesamt", stat_done:"Fertig", stat_van:"Verfügbar", stat_nincs:"Nicht verfügbar", stat_kulso:"Externes Lager",
+    s_connection:"Verbindung",
+    s_login:"Anmeldung",
+    s_source:"Artikelnummern Quelle",
+    url_label:"Website URL",
+    login_required:"Anmeldung erforderlich",
+    username:"Benutzername",
+    password:"Passwort",
+    dz_text:"Datei hierher ziehen",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Gesamt",
+    stat_done:"Fertig",
+    stat_van:"Verfügbar",
+    stat_nincs:"Nicht verfügbar",
+    stat_kulso:"Externes Lager",
     status_waiting:"Warten",
-    results_title:"Ergebnisse", log_title:"Protokoll", manual_title:"Manuelle Eingabe",
-    col_code:"Artikelnummer", col_avail:"Verfügbarkeit",
-    btn_start:"▶  Starten", btn_continue:"▶  Fortsetzen",
-    btn_stop:"⏹ Stopp", btn_restart:"↺ Neustart", btn_clear_log:"🗑 Log leeren",
-    exp_copy:"📋 Kopieren", exp_csv:"📄 CSV", exp_excel:"📊 Excel", exp_pdf:"🖨 PDF",
-    sec_appearance:"Darstellung", sec_updates:"Updates", sec_defaults:"Standardwerte",
-    sec_duplicates:"Duplikate", sec_language:"Sprache",
-    settings_title:"Einstellungen", btn_save:"Speichern", btn_cancel:"Abbrechen",
-    detecting:"⟳ Erkennung...", login_auto_yes:"🔒 Anmeldung erforderlich (auto)",
-    login_auto_no:"🔓 Keine Anmeldung (auto)", login_check_fail:"⚠ Konnte nicht prüfen",
+    results_title:"Ergebnisse",
+    log_title:"Protokoll",
+    manual_title:"Manuelle Eingabe",
+    col_code:"Artikelnummer",
+    col_avail:"Verfügbarkeit",
+    btn_start:"▶  Starten",
+    btn_continue:"▶  Fortsetzen",
+    btn_stop:"⏹ Stopp",
+    btn_restart:"↺ Neustart",
+    btn_clear_log:"🗑 Log leeren",
+    exp_copy:"📋 Kopieren",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Darstellung",
+    sec_updates:"Updates",
+    sec_defaults:"Standardwerte",
+    sec_duplicates:"Duplikate",
+    sec_language:"Sprache",
+    settings_title:"Einstellungen",
+    btn_save:"Speichern",
+    btn_cancel:"Abbrechen",
+    detecting:"⟳ Erkennung...",
+    login_auto_yes:"🔒 Anmeldung erforderlich (auto)",
+    login_auto_no:"🔓 Keine Anmeldung (auto)",
+    login_check_fail:"⚠ Konnte nicht prüfen",
     col_price:"Preis",
-    lbl_theme:"Thema", lbl_language:"Sprache",
+    s_scheduler:"Zeitplan",
+    s_multisites:"Mehrere Websites",
+    lbl_sched_enable:"Automatisch",
+    lbl_sched_time:"Uhrzeit",
+    lbl_sched_days:"Tage",
+    multisite_hint:"Eine URL pro Zeile",
+    history_title:"Verlauf",
+    lbl_theme:"Thema",
+    lbl_language:"Sprache",
     lbl_auto_update:"Automatische Update-Prüfung",
     lbl_update_freq:"Prüfhäufigkeit",
     lbl_manual_update:"Manuelle Update-Prüfung",
-    lbl_sleep:"Verzögerung (Sek.)", lbl_save_every:"Speicherintervall (Eintr.)",
-    lbl_price:"Preise abrufen", lbl_auto_rm:"Duplikate automatisch entfernen",
-    lbl_dont_ask:"Nicht mehr fragen", lbl_save_dup:"Duplikate als TXT speichern",
-    lbl_sort:"Reihenfolge", lbl_duplicates_title:"Duplikate",
-    opt_on_start:"Beim Start", opt_daily:"Täglich", opt_never:"Nie",
-    opt_dark:"🌙 Dunkel", opt_light:"☀️ Hell",
+    lbl_sleep:"Verzögerung (Sek.)",
+    lbl_save_every:"Speicherintervall (Eintr.)",
+    lbl_price:"Preise abrufen",
+    lbl_auto_rm:"Duplikate automatisch entfernen",
+    lbl_dont_ask:"Nicht mehr fragen",
+    lbl_save_dup:"Duplikate als TXT speichern",
+    lbl_sort:"Reihenfolge",
+    lbl_duplicates_title:"Duplikate",
+    opt_on_start:"Beim Start",
+    opt_daily:"Täglich",
+    opt_never:"Nie",
+    opt_dark:"🌙 Dunkel",
+    opt_light:"☀️ Hell",
   },
   sk: {
-    s_connection:"Pripojenie", s_login:"Prihlásenie", s_source:"Zdroj kódov",
-    url_label:"URL webovej stránky", login_required:"Prihlásenie je potrebné",
-    username:"Používateľské meno", password:"Heslo",
-    dz_text:"Presuňte súbor sem", dz_sub:"TXT · CSV · Excel",
-    stat_total:"Celkom", stat_done:"Hotovo", stat_van:"Dostupné", stat_nincs:"Nedostupné", stat_kulso:"Externý sklad",
+    s_connection:"Pripojenie",
+    s_login:"Prihlásenie",
+    s_source:"Zdroj kódov",
+    url_label:"URL webovej stránky",
+    login_required:"Prihlásenie je potrebné",
+    username:"Používateľské meno",
+    password:"Heslo",
+    dz_text:"Presuňte súbor sem",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Celkom",
+    stat_done:"Hotovo",
+    stat_van:"Dostupné",
+    stat_nincs:"Nedostupné",
+    stat_kulso:"Externý sklad",
     status_waiting:"Čakanie",
-    results_title:"Výsledky", log_title:"Protokol", manual_title:"Manuálne kódy",
-    col_code:"Kód článku", col_avail:"Dostupnosť",
-    btn_start:"▶  Spustiť", btn_continue:"▶  Pokračovať",
-    btn_stop:"⏹ Zastaviť", btn_restart:"↺ Reštart", btn_clear_log:"🗑 Vymazať log",
-    exp_copy:"📋 Kopírovať", exp_csv:"📄 CSV", exp_excel:"📊 Excel", exp_pdf:"🖨 PDF",
-    sec_appearance:"Vzhľad", sec_updates:"Aktualizácie", sec_defaults:"Predvolené",
-    sec_duplicates:"Duplikáty", sec_language:"Jazyk",
-    settings_title:"Nastavenia", btn_save:"Uložiť", btn_cancel:"Zrušiť",
-    detecting:"⟳ Zisťovanie...", login_auto_yes:"🔒 Prihlásenie potrebné (auto)",
-    login_auto_no:"🔓 Prihlásenie nepotrebné (auto)", login_check_fail:"⚠ Overenie zlyhalo",
+    results_title:"Výsledky",
+    log_title:"Protokol",
+    manual_title:"Manuálne kódy",
+    col_code:"Kód článku",
+    col_avail:"Dostupnosť",
+    btn_start:"▶  Spustiť",
+    btn_continue:"▶  Pokračovať",
+    btn_stop:"⏹ Zastaviť",
+    btn_restart:"↺ Reštart",
+    btn_clear_log:"🗑 Vymazať log",
+    exp_copy:"📋 Kopírovať",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Vzhľad",
+    sec_updates:"Aktualizácie",
+    sec_defaults:"Predvolené",
+    sec_duplicates:"Duplikáty",
+    sec_language:"Jazyk",
+    settings_title:"Nastavenia",
+    btn_save:"Uložiť",
+    btn_cancel:"Zrušiť",
+    detecting:"⟳ Zisťovanie...",
+    login_auto_yes:"🔒 Prihlásenie potrebné (auto)",
+    login_auto_no:"🔓 Prihlásenie nepotrebné (auto)",
+    login_check_fail:"⚠ Overenie zlyhalo",
     col_price:"Cena",
-    lbl_theme:"Téma", lbl_language:"Jazyk",
+    s_scheduler:"Plánovač",
+    s_multisites:"Viac webov",
+    lbl_sched_enable:"Automatické spustenie",
+    lbl_sched_time:"Čas",
+    lbl_sched_days:"Dni",
+    multisite_hint:"Jedna URL na riadok",
+    history_title:"História",
+    lbl_theme:"Téma",
+    lbl_language:"Jazyk",
     lbl_auto_update:"Automatická kontrola aktualizácií",
     lbl_update_freq:"Frekvencia kontroly",
     lbl_manual_update:"Manuálna kontrola aktualizácií",
-    lbl_sleep:"Oneskorenie (s)", lbl_save_every:"Interval uloženia (pol.)",
-    lbl_price:"Načítať ceny", lbl_auto_rm:"Automatické odstránenie",
-    lbl_dont_ask:"Nepýtať sa znova", lbl_save_dup:"Uložiť duplikáty do TXT",
-    lbl_sort:"Poradie", lbl_duplicates_title:"Duplikáty",
-    opt_on_start:"Pri spustení", opt_daily:"Denne", opt_never:"Nikdy",
-    opt_dark:"🌙 Tmavý", opt_light:"☀️ Svetlý",
+    lbl_sleep:"Oneskorenie (s)",
+    lbl_save_every:"Interval uloženia (pol.)",
+    lbl_price:"Načítať ceny",
+    lbl_auto_rm:"Automatické odstránenie",
+    lbl_dont_ask:"Nepýtať sa znova",
+    lbl_save_dup:"Uložiť duplikáty do TXT",
+    lbl_sort:"Poradie",
+    lbl_duplicates_title:"Duplikáty",
+    opt_on_start:"Pri spustení",
+    opt_daily:"Denne",
+    opt_never:"Nikdy",
+    opt_dark:"🌙 Tmavý",
+    opt_light:"☀️ Svetlý",
   },
 };
 
@@ -1388,6 +1636,262 @@ function ds() {
   const d=new Date();
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
 }
+
+// ══ FILTER & SEARCH ═══════════════════════════════════════════════════════
+let _activeFilter = 'all';
+
+function setFilter(f) {
+  _activeFilter = f;
+  ['all','van','nincs','kulso','ism'].forEach(id => {
+    const btn = document.getElementById('fbtn-' + id);
+    if (btn) btn.classList.toggle('active', id === f);
+  });
+  applyFilter();
+}
+
+function applyFilter() {
+  const q   = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
+  const f   = _activeFilter;
+  const map = {van:'Van', nincs:'Nincs', kulso:'Külső raktár', ism:'Ismeretlen'};
+  document.querySelectorAll('#table-body .tbl-row').forEach(row => {
+    const code  = row.querySelector('.code-cell')?.textContent.toLowerCase() || '';
+    const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
+    const matchQ = !q || code.includes(q);
+    const matchF = f === 'all' || avail === (map[f] || '');
+    row.style.display = matchQ && matchF ? '' : 'none';
+  });
+}
+
+// ══ RECHECK MISSING ════════════════════════════════════════════════════════
+function recheckMissing() {
+  const missing = [];
+  document.querySelectorAll('#table-body .tbl-row').forEach(row => {
+    const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
+    if (avail === 'Nincs' || avail === 'Ismeretlen') {
+      const code = row.querySelector('.code-cell')?.textContent.trim();
+      if (code) missing.push(code);
+    }
+  });
+  if (!missing.length) { showToast('Nincs újraellenőrzendő cikk', 'ℹ'); return; }
+  // Remove those rows from table, pre-fill as new run
+  document.querySelectorAll('#table-body .tbl-row').forEach(row => {
+    const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
+    if (avail === 'Nincs' || avail === 'Ismeretlen') row.remove();
+  });
+  // Put codes into manual textarea and start
+  document.getElementById('manual-codes').value = missing.join('
+');
+  state.sourceData = missing;
+  showToast(`${missing.length} cikk újraellenőrzése indul`, '🔁');
+  openStartModal();
+}
+
+// ══ HISTORY ════════════════════════════════════════════════════════════════
+let _runHistory = [];
+
+async function loadHistory() {
+  try {
+    const h = await py('get_history');
+    if (h) { _runHistory = h; renderHistory(); }
+  } catch(e) {}
+}
+
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!_runHistory.length) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--text3);text-align:center;padding:20px">Még nincs mentett futtatás</div>';
+    return;
+  }
+  el.innerHTML = '';
+  [..._runHistory].reverse().slice(0,20).forEach((run, i) => {
+    const prev = _runHistory[_runHistory.length - 2 - i];
+    const newInStock  = prev ? run.van - prev.van : 0;
+    const goneInStock = prev ? prev.van - run.van : 0;
+    const div = document.createElement('div');
+    div.className = 'hist-entry';
+    div.innerHTML = `
+      <div class="hist-date">${run.date}</div>
+      <div class="hist-url">${run.url}</div>
+      <div class="hist-stats">
+        <span class="hist-stat hist-van">✓ ${run.van}</span>
+        <span class="hist-stat hist-nincs">✗ ${run.nincs}</span>
+        ${run.kulso ? `<span class="hist-stat hist-kulso">◈ ${run.kulso}</span>` : ''}
+        ${newInStock > 0  ? `<span class="hist-stat" style="color:var(--green)">▲ +${newInStock} visszajött</span>` : ''}
+        ${goneInStock > 0 ? `<span class="hist-stat" style="color:var(--red)">▼ -${goneInStock} elfogyott</span>` : ''}
+      </div>`;
+    div.onclick = () => showHistoryDetail(run);
+    el.appendChild(div);
+  });
+}
+
+function showHistoryDetail(run) {
+  // Load that run's results into the table
+  if (!run.results || !run.results.length) { showToast('Nincs részletes adat', 'ℹ'); return; }
+  clearResults();
+  run.results.forEach(r => addRow(r.code, r.avail, r.price || ''));
+  // Switch to results view
+  showToast(`${run.date} — ${run.results.length} eredmény betöltve`, '📊');
+}
+
+function saveRunToHistory(summary) {
+  py('save_history', summary).catch(()=>{});
+  _runHistory.push(summary);
+  renderHistory();
+}
+
+// ══ SCHEDULER ══════════════════════════════════════════════════════════════
+let _schedTimer = null;
+
+function toggleScheduler() {
+  const on = document.getElementById('sched-enabled').checked;
+  const cfg = document.getElementById('sched-config');
+  cfg.style.display = on ? 'flex' : 'none';
+  if (on) { startScheduler(); } else { stopScheduler(); }
+  py('save_scheduler', {
+    enabled: on,
+    time: document.getElementById('sched-time').value,
+    days: getActiveDays()
+  }).catch(()=>{});
+}
+
+function toggleDay(el) {
+  el.classList.toggle('active');
+  updateSchedulerNext();
+  py('save_scheduler', {
+    enabled: document.getElementById('sched-enabled').checked,
+    time: document.getElementById('sched-time').value,
+    days: getActiveDays()
+  }).catch(()=>{});
+}
+
+function getActiveDays() {
+  return Array.from(document.querySelectorAll('.day-btn.active'))
+    .map(el => parseInt(el.getAttribute('data-day')));
+}
+
+function updateSchedulerNext() {
+  const time  = document.getElementById('sched-time').value;
+  const days  = getActiveDays();
+  if (!time || !days.length) {
+    document.getElementById('sched-next').textContent = 'Nincs aktív nap kijelölve';
+    return;
+  }
+  const now  = new Date();
+  const [h,m]= time.split(':').map(Number);
+  let next   = null;
+  for (let i = 0; i <= 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    d.setHours(h, m, 0, 0);
+    if (d > now && days.includes(d.getDay())) { next = d; break; }
+  }
+  document.getElementById('sched-next').textContent = next
+    ? 'Következő: ' + next.toLocaleString('hu-HU', {weekday:'short',hour:'2-digit',minute:'2-digit'})
+    : 'Nincs aktív nap';
+}
+
+function startScheduler() {
+  stopScheduler();
+  updateSchedulerNext();
+  _schedTimer = setInterval(() => {
+    const time = document.getElementById('sched-time').value;
+    const days = getActiveDays();
+    if (!time || !days.length || !document.getElementById('sched-enabled').checked) return;
+    const now = new Date();
+    const [h,m] = time.split(':').map(Number);
+    if (now.getHours()===h && now.getMinutes()===m && days.includes(now.getDay())) {
+      if (!state.running) {
+        onLog('[⏰] Ütemezett futtatás indul...');
+        runProcess(false);
+      }
+    }
+  }, 30000); // check every 30 seconds
+}
+
+function stopScheduler() {
+  if (_schedTimer) { clearInterval(_schedTimer); _schedTimer = null; }
+}
+
+// ══ MULTI-SITE ════════════════════════════════════════════════════════════
+function getExtraUrls() {
+  const txt = document.getElementById('extra-urls')?.value.trim() || '';
+  return txt ? txt.split('\n').map(u => u.trim()).filter(u => u.startsWith('http')) : [];
+}
+
+// Override onDone to handle multi-site sequential runs
+let _multiSiteQueue = [];
+let _multiSiteResults = {};
+let _currentSiteUrl = '';
+
+function onDone() {
+  onStatus('Kész ✓');
+  // Save history for current run
+  const url = document.getElementById('url').value.trim();
+  const summary = {
+    date: new Date().toLocaleString('hu-HU'),
+    url, ts: Date.now(),
+    van: state.stats.van, nincs: state.stats.nincs,
+    kulso: state.stats.kulso, ism: state.stats.ism,
+    total: state.stats.van + state.stats.nincs + state.stats.kulso + state.stats.ism,
+    results: getTableData().map(r => ({...r})),
+  };
+  saveRunToHistory(summary);
+
+  // Windows notification
+  py('notify', `Kész — ${summary.van} Van, ${summary.nincs} Nincs`, url).catch(()=>{});
+
+  // Enable recheck button
+  document.getElementById('btn-recheck').disabled = false;
+
+  if (_multiSiteQueue.length > 0) {
+    // Run next site
+    const nextUrl = _multiSiteQueue.shift();
+    _currentSiteUrl = nextUrl;
+    onLog(`[🌐] Következő weboldal: ${nextUrl}`);
+    document.getElementById('url').value = nextUrl;
+    setTimeout(() => runProcess(true), 1000); // skip_dup, keep same codes
+  } else {
+    // All done
+    state.running = false; state.canContinue = false;
+    updateStartBtn();
+    document.getElementById('btn-start').disabled = false;
+    if (_currentSiteUrl) {
+      // Was multi-site — reset URL
+      document.getElementById('url').value = _currentSiteUrl || document.getElementById('url').value;
+    }
+  }
+}
+
+// Override startAction to handle multi-site
+const _originalConfirmStart = window.confirmStart;
+function confirmStart() {
+  _currentSiteUrl = '';
+  const extraUrls = getExtraUrls();
+  if (extraUrls.length > 0) {
+    const mainUrl = document.getElementById('url').value.trim();
+    _multiSiteQueue = extraUrls; // queue the extra ones
+    onLog(`[🌐] ${extraUrls.length + 1} weboldal sorban ellenőrizve`);
+  } else {
+    _multiSiteQueue = [];
+  }
+  // Save modal values (copy from original confirmStart)
+  document.getElementById('sleep').value      = document.getElementById('sm-sleep').value;
+  document.getElementById('save-every').value = document.getElementById('sm-save-every').value;
+  document.getElementById('sort-order').value = document.getElementById('sm-sort').value;
+  document.getElementById('auto-rm-val').value= document.getElementById('sm-auto-rm').checked?'true':'false';
+  document.getElementById('save-dup-val').value=document.getElementById('sm-save-dup').checked?'true':'false';
+  closeStartModal();
+  runProcess(false);
+}
+
+// Load history on init
+window.addEventListener('load', async () => {
+  // (runs after existing load handler)
+  setTimeout(loadHistory, 500);
+});
+
+// Enable recheck button when there are results
+const _origAddRow = window.addRow;
 </script>
 </body>
 </html>
