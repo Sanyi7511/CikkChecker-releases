@@ -79,9 +79,10 @@ def export_excel(csv_path, excel_path):
         if os.path.exists(csv_path):
             with open(csv_path, encoding="utf-8-sig", newline="") as f:
                 for row in _csv.DictReader(f):
-                    c = (row.get("Cikkszam") or "").strip()
-                    a = (row.get("Elerhetoseg") or "").strip()
-                    p = (row.get("Ar") or "").strip()
+                    # Try both accented and plain column names
+                    c = (row.get("Cikkszám") or row.get("Cikkszam") or "").strip()
+                    a = (row.get("Elérhetőség") or row.get("Elerhetoseg") or "").strip()
+                    p = (row.get("Ár") or row.get("Ar") or "").strip()
                     if not c: continue
                     ws.append([c, a, p]); r = ws.max_row
                     for col in range(1, 4):
@@ -230,13 +231,56 @@ class Api:
         """Legacy compat — redirect to browse_file."""
         return self.browse_file("txt")
 
-    def browse_xlsx(self):
+    def export_excel_dialog(self, data):
+        """Called from JS with table row data — shows save dialog and exports Excel."""
         path = self._tk_dialog(lambda r: filedialog.asksaveasfilename(
             parent=r, title="Excel mentési hely",
-            defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")]))
-        if path:
-            self._cfg["last_xlsx"] = path
-        return path or ""
+            initialfile=f"CikkChecker_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            defaultextension=".xlsx", filetypes=[("Excel fájl", "*.xlsx")]))
+        if not path:
+            return None
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+            wb = Workbook(); ws = wb.active; ws.title = "CikkChecker"
+            fills = {
+                "Van":          PatternFill("solid", fgColor="0A2016"),
+                "Nincs":        PatternFill("solid", fgColor="200A0A"),
+                "Külső raktár": PatternFill("solid", fgColor="201508"),
+            }
+            fonts = {
+                "Van":          Font(color="23C55E", bold=True, size=10),
+                "Nincs":        Font(color="F04747", bold=True, size=10),
+                "Külső raktár": Font(color="F5A623", bold=True, size=10),
+            }
+            thin = Side(style="thin", color="2A3147")
+            brd  = Border(left=thin, right=thin, top=thin, bottom=thin)
+            ws.append(["Cikkszám", "Elérhetőség", "Ár"])
+            for cell in ws[1]:
+                cell.fill = PatternFill("solid", fgColor="0D1018")
+                cell.font = Font(color="9BA3B4", bold=True, size=10)
+                cell.alignment = Alignment(horizontal="center"); cell.border = brd
+            for row in (data or []):
+                c = str(row.get("code","")).strip()
+                a = str(row.get("avail","")).strip()
+                p = str(row.get("price","")).strip()
+                if not c: continue
+                ws.append([c, a, p]); r = ws.max_row
+                for col in range(1,4):
+                    cell = ws.cell(r, col); cell.border = brd
+                    cell.alignment = Alignment(horizontal="left" if col==1 else "center")
+                    cell.fill = fills.get(a, PatternFill("solid", fgColor="13161F"))
+                ws.cell(r,2).font = fonts.get(a, Font(color="9BA3B4", size=10))
+                ws.cell(r,1).font = Font(color="E8EBF0", size=10)
+                ws.cell(r,3).font = Font(color="9BA3B4", size=10)
+            ws.column_dimensions["A"].width = 28
+            ws.column_dimensions["B"].width = 18
+            ws.column_dimensions["C"].width = 16
+            wb.save(path)
+            return path
+        except Exception as e:
+            self._js(f"onLog({json.dumps(f'[ERR] Excel export hiba: {e}')})")
+            return None
 
     # ── Login detection ───────────────────────────────────────────────────
     def detect_login(self, url):

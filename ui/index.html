@@ -343,7 +343,7 @@ select option { background:var(--select-opt); color:var(--text); }
   #print-area,#print-area * { visibility:visible; }
   #print-area { position:fixed;inset:0;padding:20px;background:white;color:black; }
   .print-table { width:100%;border-collapse:collapse;font-size:12px; }
-  .print-table th { background:#1a0f3c;color:white;padding:8px 12px;text-align:left;font-weight:600; }
+  .print-table th { background:#2d1b69;color:white;padding:8px 12px;text-align:left;font-weight:600; }
   .print-table td { padding:6px 12px;border-bottom:1px solid #eee; }
   .print-table tr:nth-child(even) td { background:#f9f9ff; }
   .print-van{color:#16a34a;font-weight:600;}.print-nincs{color:#dc2626;font-weight:600;}.print-kulso{color:#d97706;font-weight:600;}
@@ -683,29 +683,7 @@ select option { background:var(--select-opt); color:var(--text); }
   </div>
 </div>
 
-<!-- ═══ DUPLICATE DIALOG ══════════════════════════════════════════════════ -->
-<div class="overlay" id="dup-overlay">
-  <div class="modal dialog-modal">
-    <div class="modal-hdr">
-      <div class="dialog-hdr"><span class="icon">⚠</span>
-        <div><div class="modal-title">Duplikátumok találva</div><div id="dup-meta" style="font-size:11px;color:var(--text3);margin-top:2px"></div></div>
-      </div>
-    </div>
-    <div class="modal-body">
-      <pre id="dup-list" style="background:var(--card2);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--text2);max-height:150px;overflow-y:auto;margin-bottom:12px"></pre>
-      <div class="dup-box">
-        <div class="chk-row"><div class="chk-info"><span>Csak 1 maradjon minden cikkszámból</span></div>
-          <label class="toggle"><input type="checkbox" id="dup-rm" checked><span class="toggle-sl"></span></label></div>
-        <div class="chk-row"><div class="chk-info"><span>Duplikátumok mentése TXT-be</span></div>
-          <label class="toggle"><input type="checkbox" id="dup-save" checked><span class="toggle-sl"></span></label></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-modal-cancel" onclick="resolveDup(false)">Mégse</button>
-      <button class="btn-modal-save" onclick="resolveDup(true)">Folytatás</button>
-    </div>
-  </div>
-</div>
+<!-- Duplikátum kezelés az Indítás modalban történik -->
 
 <!-- ═══ UNKNOWN DIALOG ════════════════════════════════════════════════════ -->
 <div class="overlay" id="unknown-overlay">
@@ -825,9 +803,9 @@ function applyLanguage(lang) {
     const val = t(key);
     if (val) el.textContent = val;
   });
-  // Update settings modal title
-  const mt = document.querySelector('.modal-title');
-  if (mt) mt.textContent = '⚙ ' + t('settings_title');
+  // Update each modal title by specific element
+  const settingsTitle = document.querySelector('#settings-overlay .modal-title');
+  if (settingsTitle) settingsTitle.textContent = '⚙ ' + t('settings_title');
   // Update detect badge if visible
   const db = document.getElementById('detect-badge');
   if (db && db.style.display !== 'none') {
@@ -847,7 +825,7 @@ const state = {
   stats:{van:0,nincs:0,kulso:0,ism:0},
   unknownMode:null, unknownResolve:null,
   updateVersion:null, updateAsset:null,
-  dupResolve:null,
+
   sourceData:[], sourceType:'txt', sourcePath:'',
 };
 
@@ -892,7 +870,7 @@ function onLoginDetected(req) {
   const b = document.getElementById('detect-badge');
   b.style.display = 'block';
   b.style.color = req ? 'var(--amber)' : 'var(--green)';
-  b.textContent = req ? '🔒 Bejelentkezés szükséges (auto)' : '🔓 Nem szükséges (auto)';
+  b.textContent = req ? t('login_auto_yes') : t('login_auto_no');
 }
 function onUnknown(code) {
   return new Promise(resolve => {
@@ -1237,10 +1215,7 @@ function resolveUnknown(action) {
   }
 }
 
-function resolveDup(ok) {
-  document.getElementById('dup-overlay').classList.remove('show');
-  if (state.dupResolve) { state.dupResolve(ok); state.dupResolve=null; }
-}
+
 
 // ══ SETTINGS ══════════════════════════════════════════════════════════════
 function openSettings() {
