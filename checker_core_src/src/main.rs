@@ -36,8 +36,8 @@ fn done_msg()          { emit(serde_json::json!({"kind":"done"})); }
 fn error_msg(msg: &str){ emit(serde_json::json!({"kind":"error","msg":msg})); }
 fn login_detected(required: bool) { emit(serde_json::json!({"kind":"login_detected","required":required})); }
 
-fn result_full(code: &str, avail: &str, price: &str, images: usize) {
-    emit(serde_json::json!({"kind":"result","cikkszam":code,"elerhetoseg":avail,"ar":price,"images":images}));
+fn result_full(code: &str, avail: &str, price: &str) {
+    emit(serde_json::json!({"kind":"result","cikkszam":code,"elerhetoseg":avail,"ar":price}));
 }
 
 // ── stdin ────────────────────────────────────────────────────────────────────
@@ -61,38 +61,6 @@ fn trim_to_root(url: &str) -> String {
 
 fn normalize(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase()
-}
-
-fn count_product_images(html: &str, cikkszam: &str) -> usize {
-    let doc = Html::parse_document(html);
-    // Try to find product block first
-    if let Ok(sel) = Selector::parse(&format!("[title='{}']", cikkszam)) {
-        if let Some(el) = doc.select(&sel).next() {
-            // Walk up ~6 levels to find product block
-            let block_html = format!("{:?}", el.html());
-            // Count img tags in surrounding HTML — approximate by searching in whole page
-            // since scraper doesn't easily let us walk upward
-        }
-    }
-    // Count ALL img tags in the page, excluding tiny icons (width/height hints)
-    if let Ok(img_sel) = Selector::parse("img") {
-        let imgs: Vec<_> = doc.select(&img_sel).collect();
-        // Filter out icons: only count imgs that likely have meaningful size
-        // We check for src patterns typical of product images
-        let product_imgs = imgs.iter().filter(|img| {
-            let src = img.value().attr("src").unwrap_or("");
-            let alt = img.value().attr("alt").unwrap_or("");
-            let class = img.value().attr("class").unwrap_or("");
-            // Skip flags, icons, logos
-            !src.contains("flag") && !src.contains("icon") && !src.contains("logo")
-            && !class.contains("flag") && !class.contains("icon")
-            && (src.contains("product") || src.contains("item") || src.contains("upload")
-                || src.ends_with(".jpg") || src.ends_with(".png") || src.ends_with(".webp")
-                || !alt.is_empty())
-        }).count();
-        return product_imgs;
-    }
-    0
 }
 
 fn looks_valid(html: &str) -> bool {
@@ -312,19 +280,19 @@ fn decide_stock(html: &str, text: &str) -> &'static str {
     "Ismeretlen"
 }
 
-fn check_stock(client: &Client, base_url: &str, cikkszam: &str) -> (&'static str, String, usize) {
+fn check_stock(client: &Client, base_url: &str, cikkszam: &str) -> (&'static str, String) {
     let url = format!("{}/product-search/{}/0?1", base_url, cikkszam);
     let resp = match client.get(&url).send() {
         Ok(r) => r,
-        Err(e) => { log(&format!("Halozati hiba ({}): {}", cikkszam, e)); return ("Ismeretlen", String::new(), 0); }
+        Err(e) => { log(&format!("Halozati hiba ({}): {}", cikkszam, e)); return ("Ismeretlen", String::new()); }
     };
     if resp.status() != 200 {
         log(&format!("HTTP {} - {}", resp.status(), cikkszam));
-        return ("Ismeretlen", String::new(), 0);
+        return ("Ismeretlen", String::new());
     }
 
     let html = resp.text().unwrap_or_default();
-    if !looks_valid(&html) { return ("Ismeretlen", String::new(), 0); }
+    if !looks_valid(&html) { return ("Ismeretlen", String::new()); }
 
     let doc = Html::parse_document(&html);
     let whole_text: String = doc.root_element().text().collect::<Vec<_>>().join(" ");
@@ -333,7 +301,7 @@ fn check_stock(client: &Client, base_url: &str, cikkszam: &str) -> (&'static str
     let no_result = ["nincs talalat","nem talalhato","nincs ilyen termek",
                      "nincs találat","nem található","nincs ilyen termék"];
     if no_result.iter().any(|k| norm_whole.contains(k)) && !norm_whole.contains(&cikkszam.to_lowercase()) {
-        return ("Nincs", String::new(), 0);
+        return ("Nincs", String::new());
     }
 
     if norm_whole.contains(&cikkszam.to_lowercase()) {
@@ -343,8 +311,7 @@ fn check_stock(client: &Client, base_url: &str, cikkszam: &str) -> (&'static str
         } else {
             String::new()
         };
-        let images = count_product_images(&html, cikkszam);
-        (avail, price, images)
+        (avail, price)
     } else {
         log(&format!("Nem talaltam: {}", cikkszam));
         ("Ismeretlen", String::new(), 0)
@@ -352,7 +319,7 @@ fn check_stock(client: &Client, base_url: &str, cikkszam: &str) -> (&'static str
 }
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
-fn load_csv(path: &str) -> (Vec<(String, String, String, usize)>, HashSet<String>) {
+fn load_csv(path: &str) -> (Vec<(String, String, String)>, HashSet<String>) {
     let mut rows = Vec::new();
     let mut done = HashSet::new();
     if !Path::new(path).exists() { return (rows, done); }
@@ -363,29 +330,24 @@ fn load_csv(path: &str) -> (Vec<(String, String, String, usize)>, HashSet<String
         let c = rec.get(0).unwrap_or("").trim().to_string();
         let a = rec.get(1).unwrap_or("").trim().to_string();
         let p = rec.get(2).unwrap_or("").trim().to_string();
-        let i: usize = rec.get(3).unwrap_or("0").trim().parse().unwrap_or(0);
-        if !c.is_empty() { done.insert(c.clone()); rows.push((c, a, p, i)); }
+        if !c.is_empty() { done.insert(c.clone()); rows.push((c, a, p)); }
     }
     (rows, done)
 }
 
-fn write_csv(path: &str, rows: &[(String, String, String, usize)]) {
+fn write_csv(path: &str, rows: &[(String, String, String)]) {
     if let Ok(mut w) = csv::Writer::from_path(path) {
-        let _ = w.write_record(&["Cikkszam","Elerhetoseg","Ar","Kepek"]);
-        for (c,a,p,i) in rows {
-            let img_str = i.to_string();
-            let _ = w.write_record(&[c.as_str(), a.as_str(), p.as_str(), &img_str]);
-        }
+        let _ = w.write_record(&["Cikkszam","Elerhetoseg","Ar"]);
+        for (c,a,p) in rows { let _ = w.write_record(&[c.as_str(), a.as_str(), p.as_str()]); }
     }
 }
 
-fn append_csv(path: &str, cikkszam: &str, avail: &str, price: &str, images: usize) {
+fn append_csv(path: &str, cikkszam: &str, avail: &str, price: &str) {
     let exists = Path::new(path).exists();
     if let Ok(file) = fs::OpenOptions::new().create(true).append(true).open(path) {
         let mut w = csv::WriterBuilder::new().has_headers(false).from_writer(file);
-        if !exists { let _ = w.write_record(&["Cikkszam","Elerhetoseg","Ar","Kepek"]); }
-        let img_str = images.to_string();
-        let _ = w.write_record(&[cikkszam, avail, price, &img_str]);
+        if !exists { let _ = w.write_record(&["Cikkszam","Elerhetoseg","Ar"]); }
+        let _ = w.write_record(&[cikkszam, avail, price]);
     }
 }
 

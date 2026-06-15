@@ -450,11 +450,10 @@ class Api:
                     self._js(f"onLoginDetected({req})")
 
                 elif kind == "result":
-                    code   = json.dumps(msg.get("cikkszam",""))
-                    avail  = json.dumps(msg.get("elerhetoseg",""))
-                    price  = json.dumps(msg.get("ar",""))
-                    images = int(msg.get("images", 0))
-                    self._js(f"onResult({code},{avail},{price},{images})")
+                    code  = json.dumps(msg.get("cikkszam",""))
+                    avail = json.dumps(msg.get("elerhetoseg",""))
+                    price = json.dumps(msg.get("ar",""))
+                    self._js(f"onResult({code},{avail},{price})")
 
                 elif kind == "unknown":
                     code = msg["cikkszam"]

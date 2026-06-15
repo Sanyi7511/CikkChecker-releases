@@ -198,14 +198,14 @@ select option { background:var(--select-opt); color:var(--text); }
   color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap; }
 .exp-btn:hover { background:rgba(123,92,240,.2);border-color:var(--accent);color:var(--text); }
 
-.tbl-hdr { display:grid;grid-template-columns:1fr 110px 80px 60px;
+.tbl-hdr { display:grid;grid-template-columns:1fr 110px 90px;
   padding:6px 12px;font-size:9px;color:var(--text3);
   text-transform:uppercase;letter-spacing:.7px;flex-shrink:0; }
 .tbl-body { overflow-y:auto;flex:1; }
 .tbl-body::-webkit-scrollbar{width:3px;}
 .tbl-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-.tbl-row { display:grid;grid-template-columns:1fr 110px 80px 60px;
+.tbl-row { display:grid;grid-template-columns:1fr 110px 90px;
   padding:7px 12px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);
   align-items:center;transition:background .1s;cursor:default; }
 .tbl-row:hover { background:var(--glass); }
@@ -1157,13 +1157,13 @@ function onProgress(cur, tot) {
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('s-done').textContent = cur;
 }
-function onResult(code, avail, price, images) {
+function onResult(code, avail, price) {
   if (avail==='Van') state.stats.van++;
   else if (avail==='Nincs') state.stats.nincs++;
   else if (avail==='Külső raktár') state.stats.kulso++;
   else state.stats.ism++;
   updateStats();
-  addRow(code, avail, price, images);
+  addRow(code, avail, price);
 }
 function onLoginDetected(req) {
   document.getElementById('login-required').checked = req;
