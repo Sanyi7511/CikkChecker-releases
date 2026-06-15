@@ -198,14 +198,14 @@ select option { background:var(--select-opt); color:var(--text); }
   color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap; }
 .exp-btn:hover { background:rgba(123,92,240,.2);border-color:var(--accent);color:var(--text); }
 
-.tbl-hdr { display:grid;grid-template-columns:1fr 110px 90px;
+.tbl-hdr { display:grid;grid-template-columns:1fr 110px 80px 60px;
   padding:6px 12px;font-size:9px;color:var(--text3);
   text-transform:uppercase;letter-spacing:.7px;flex-shrink:0; }
 .tbl-body { overflow-y:auto;flex:1; }
 .tbl-body::-webkit-scrollbar{width:3px;}
 .tbl-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-.tbl-row { display:grid;grid-template-columns:1fr 110px 90px;
+.tbl-row { display:grid;grid-template-columns:1fr 110px 80px 60px;
   padding:7px 12px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);
   align-items:center;transition:background .1s;cursor:default; }
 .tbl-row:hover { background:var(--glass); }
@@ -876,6 +876,7 @@ const TRANSLATIONS = {
     opt_never:"Soha",
     opt_dark:"🌙 Sötét",
     opt_light:"☀️ Világos",
+    username_label:"Email / Felhasználónév",col_images:"Képek",
   },
   en: {
     s_connection:"Connection",
@@ -945,6 +946,7 @@ const TRANSLATIONS = {
     opt_never:"Never",
     opt_dark:"🌙 Dark",
     opt_light:"☀️ Light",
+    username_label:"Email / Username",col_images:"Images",
   },
   de: {
     s_connection:"Verbindung",
@@ -1014,6 +1016,7 @@ const TRANSLATIONS = {
     opt_never:"Nie",
     opt_dark:"🌙 Dunkel",
     opt_light:"☀️ Hell",
+    username_label:"E-Mail / Benutzername",col_images:"Bilder",
   },
   sk: {
     s_connection:"Pripojenie",
@@ -1084,6 +1087,7 @@ const TRANSLATIONS = {
     opt_dark:"🌙 Tmavý",
     opt_light:"☀️ Svetlý",
   },
+    username_label:"E-mail / Používateľské meno",col_images:"Obrázky",
 };
 
 let _lang = 'hu';
@@ -1153,13 +1157,13 @@ function onProgress(cur, tot) {
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('s-done').textContent = cur;
 }
-function onResult(code, avail, price) {
+function onResult(code, avail, price, images) {
   if (avail==='Van') state.stats.van++;
   else if (avail==='Nincs') state.stats.nincs++;
   else if (avail==='Külső raktár') state.stats.kulso++;
   else state.stats.ism++;
   updateStats();
-  addRow(code, avail, price);
+  addRow(code, avail, price, images);
 }
 function onLoginDetected(req) {
   document.getElementById('login-required').checked = req;
@@ -1249,14 +1253,33 @@ function applyTheme(theme) {
   document.querySelectorAll('.modal-title').forEach(el => el.style.color = bodyColor);
   document.querySelectorAll('.modal-close').forEach(el => el.style.color = dark ? '#4A5568' : '#9388B8');
 
-  // Overlay background (settings, start modal, etc.)
-  const inputBg    = dark ? 'rgba(0,0,0,0.35)'        : 'rgba(255,255,255,0.8)';
-  const inputBdr   = dark ? 'rgba(255,255,255,0.10)'  : 'rgba(100,80,200,0.15)';
-  const inputColor = bodyColor;
-  document.querySelectorAll('.modal input[type=text],.modal input[type=password],.modal select,.sm-input').forEach(el => {
-    el.style.background   = inputBg;
-    el.style.borderColor  = inputBdr;
-    el.style.color        = inputColor;
+  // Input / select styling
+  const inputBg  = dark ? 'rgba(0,0,0,0.35)'        : 'rgba(255,255,255,0.8)';
+  const inputBdr = dark ? 'rgba(255,255,255,0.10)'  : 'rgba(100,80,200,0.15)';
+  // Arrow SVG color
+  const arrowColor = dark ? '%234A5568' : '%239388B8';
+  const arrowSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='${arrowColor}' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`;
+
+  document.querySelectorAll('.modal input[type=text],.modal input[type=password],.sm-input').forEach(el => {
+    el.style.backgroundColor = inputBg;
+    el.style.borderColor     = inputBdr;
+    el.style.color           = bodyColor;
+  });
+
+  // Selects need special treatment to keep the arrow
+  document.querySelectorAll('.modal select,.s-select,.sm-input[type!=text]').forEach(el => {
+    if (el.tagName !== 'SELECT') return;
+    el.style.backgroundColor    = inputBg;
+    el.style.borderColor        = inputBdr;
+    el.style.color              = bodyColor;
+    el.style.backgroundImage    = arrowSvg;
+    el.style.backgroundRepeat   = 'no-repeat';
+    el.style.backgroundPosition = 'right 8px center';
+    // Update option backgrounds
+    Array.from(el.options).forEach(opt => {
+      opt.style.background = dark ? '#1a0f3c' : '#E0E4FF';
+      opt.style.color      = bodyColor;
+    });
   });
 
   // Sidebar background
@@ -1287,14 +1310,19 @@ function resetStats() {
   document.getElementById('pct-text').textContent = '0 / 0 (0%)';
 }
 
-function addRow(code, avail, price) {
+function addRow(code, avail, price, images) {
   const body = document.getElementById('table-body');
   const cls = {Van:'badge-van',Nincs:'badge-nincs','Külső raktár':'badge-kulso'}[avail]||'badge-ism';
   const dot = avail==='Ismeretlen'?'○':'●';
   const row = document.createElement('div'); row.className = 'tbl-row';
+  const imgCount = typeof images !== 'undefined' && images > 0 ? images : '—';
+  const imgDisplay = imgCount !== '—'
+    ? `<span style="font-size:10px;color:${imgCount > 3 ? 'var(--green)' : 'var(--text3)'}">📷 ${imgCount}</span>`
+    : '<span style="color:var(--text3);font-size:10px">—</span>';
   row.innerHTML = `<div class="code-cell">${esc(code)}</div>
     <div><span class="badge ${cls}">${dot} ${esc(avail)}</span></div>
-    <div class="price-cell">${esc(price||'—')}</div>`;
+    <div class="price-cell">${esc(price||'—')}</div>
+    <div style="text-align:center;display:flex;align-items:center;justify-content:center">${imgDisplay}</div>`;
   body.appendChild(row); body.scrollTop = body.scrollHeight;
 }
 
