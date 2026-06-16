@@ -314,7 +314,7 @@ fn check_stock(client: &Client, base_url: &str, cikkszam: &str) -> (&'static str
         (avail, price)
     } else {
         log(&format!("Nem talaltam: {}", cikkszam));
-        ("Ismeretlen", String::new(), 0)
+        ("Ismeretlen", String::new())
     }
 }
 
