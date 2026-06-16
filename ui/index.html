@@ -87,11 +87,27 @@ input::placeholder { color:var(--text3); }
 .toggle { position:relative;display:inline-block;width:36px;height:20px; }
 .toggle input { opacity:0;width:0;height:0; }
 .toggle-sl { position:absolute;cursor:pointer;inset:0;
-  background:rgba(255,255,255,.15);border-radius:20px;transition:.3s; }
+  background:rgba(255,255,255,.18);border-radius:20px;transition:.3s;
+  border:1px solid rgba(255,255,255,.2); }
 .toggle-sl::before { content:'';position:absolute;height:14px;width:14px;
-  left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s; }
-.toggle input:checked+.toggle-sl { background:var(--accent); }
+  left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;
+  box-shadow:0 1px 3px rgba(0,0,0,.3); }
+.toggle input:checked+.toggle-sl { background:var(--accent);border-color:var(--accent); }
 .toggle input:checked+.toggle-sl::before { transform:translateX(16px); }
+
+/* Light mode: make toggle track clearly visible */
+[data-theme="light"] .toggle-sl {
+  background:#C4C9E0;
+  border:1px solid #A8AECE;
+}
+[data-theme="light"] .toggle-sl::before {
+  background:white;
+  box-shadow:0 1px 4px rgba(0,0,50,.25);
+}
+[data-theme="light"] .toggle input:checked+.toggle-sl {
+  background:var(--accent);
+  border-color:var(--accent);
+}
 
 /* Drop zone */
 #drop-zone { border:1.5px dashed var(--border2);border-radius:9px;
@@ -1247,6 +1263,18 @@ function applyTheme(theme) {
   // Modal text colors
   const bodyColor = dark ? '#E8EBF0' : '#1E1240';
   document.querySelectorAll('.modal-body,.modal-hdr').forEach(m => m.style.color = bodyColor);
+
+  // Toggle sliders
+  document.querySelectorAll('.toggle-sl').forEach(sl => {
+    const checked = sl.previousElementSibling?.checked;
+    if (checked) {
+      sl.style.background = 'var(--accent)';
+      sl.style.borderColor = 'var(--accent)';
+    } else {
+      sl.style.background  = dark ? 'rgba(255,255,255,.18)' : '#C4C9E0';
+      sl.style.borderColor = dark ? 'rgba(255,255,255,.2)' : '#A8AECE';
+    }
+  });
 
   // s-label explicit color
   document.querySelectorAll('.s-label').forEach(el => el.style.color = bodyColor);
