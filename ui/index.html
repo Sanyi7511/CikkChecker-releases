@@ -120,6 +120,8 @@ select { width:100%;padding:6px 10px;font-size:11px;
   background-repeat:no-repeat;background-position:right 8px center; }
 select:focus { border-color:var(--accent); }
 select option { background:var(--select-opt); color:var(--text); }
+[data-theme="light"] select option { background:#EEF0FF; color:#1E1240; }
+[data-theme="light"] select { background-color:#fff; color:#1E1240; }
 
 /* Sidebar action buttons */
 .btn-start { width:100%;padding:11px;border-radius:9px;font-size:13px;font-weight:700;
@@ -1266,19 +1268,19 @@ function applyTheme(theme) {
     el.style.color           = bodyColor;
   });
 
-  // Selects need special treatment to keep the arrow
-  document.querySelectorAll('.modal select,.s-select,.sm-input[type!=text]').forEach(el => {
-    if (el.tagName !== 'SELECT') return;
+  // ALL selects — update bg, border, color, arrow, and option children
+  const optBg  = dark ? '#1a0f3c' : '#EEF0FF';
+  const optClr = dark ? '#E8EBF0' : '#1E1240';
+  document.querySelectorAll('select').forEach(el => {
     el.style.backgroundColor    = inputBg;
     el.style.borderColor        = inputBdr;
     el.style.color              = bodyColor;
     el.style.backgroundImage    = arrowSvg;
     el.style.backgroundRepeat   = 'no-repeat';
     el.style.backgroundPosition = 'right 8px center';
-    // Update option backgrounds
     Array.from(el.options).forEach(opt => {
-      opt.style.background = dark ? '#1a0f3c' : '#E0E4FF';
-      opt.style.color      = bodyColor;
+      opt.style.backgroundColor = optBg;
+      opt.style.color           = optClr;
     });
   });
 
