@@ -915,7 +915,7 @@ select option { background:var(--select-opt); color:var(--text); }
       <div>
         <div class="modal-title">Fájl összehasonlító</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px">
-          Két fájl cikkszámait hasonlítja össze, majd ellenőrzi a weboldalon
+          Az alap lista elemeit keresi meg a másik fájlban
         </div>
       </div>
       <button class="modal-close" onclick="closeComparator()">✕</button>
@@ -923,47 +923,57 @@ select option { background:var(--select-opt); color:var(--text); }
 
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
 
-      <!-- File inputs -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <!-- Explanation banner -->
+      <div style="background:rgba(123,92,240,.1);border:1px solid rgba(123,92,240,.2);
+        border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text2);line-height:1.6">
+        <strong style="color:var(--accent2)">Alap lista (A)</strong> — ezeket a cikkszámokat keresed<br>
+        <strong style="color:var(--green)">Összehasonlítási alap (B)</strong> — ebben nézzük meg megvannak-e
+      </div>
 
-        <!-- File A -->
+      <!-- File inputs -->
+      <div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:center">
+
+        <!-- File A — base list -->
         <div class="cmp-file-box cmp-file-a" id="cmp-box-a">
-          <div class="cmp-file-label cmp-file-a">📘 A fájl</div>
+          <div class="cmp-file-label" style="color:var(--accent2)">📘 Alap lista (A)</div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:4px">A cikkszámok amikre kíváncsi vagy</div>
           <div class="cmp-file-name" id="cmp-name-a" style="color:var(--text3)">Nincs fájl betöltve</div>
           <div class="cmp-file-count" id="cmp-count-a"></div>
-          <div style="display:flex;gap:5px;margin-top:4px">
+          <div style="display:flex;gap:5px;margin-top:6px;align-items:center">
             <button class="cmp-btn-file" onclick="cmpBrowse('a')">📂 Tallózás</button>
-            <div>
-              <label class="cmp-btn-file" style="cursor:pointer">
-                Oszlop: <select id="cmp-col-a" style="background:transparent;border:none;
-                  color:var(--text2);font-size:10px;outline:none;cursor:pointer">
-                  <option value="0">1.</option><option value="1">2.</option>
-                  <option value="2">3.</option><option value="3">4.</option>
-                </select>
-              </label>
-            </div>
+            <label style="font-size:10px;color:var(--text3)">Oszlop:
+              <select id="cmp-col-a" onchange="cmpReload('a')"
+                style="background:var(--input);border:1px solid var(--border);color:var(--text2);
+                font-size:10px;border-radius:4px;padding:1px 4px;outline:none;cursor:pointer">
+                <option value="0">1.</option><option value="1">2.</option>
+                <option value="2">3.</option><option value="3">4.</option>
+              </select>
+            </label>
           </div>
-          <div class="cmp-preview-area" id="cmp-preview-a"></div>
+          <div class="cmp-preview-area" id="cmp-preview-a" style="margin-top:6px"></div>
         </div>
 
-        <!-- File B -->
+        <!-- Arrow -->
+        <div style="text-align:center;font-size:20px;color:var(--text3)">→</div>
+
+        <!-- File B — reference -->
         <div class="cmp-file-box cmp-file-b" id="cmp-box-b">
-          <div class="cmp-file-label" style="color:var(--green)">📗 B fájl</div>
+          <div class="cmp-file-label" style="color:var(--green)">📗 Összehasonlítás (B)</div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:4px">Ebben keressük az A kódjait</div>
           <div class="cmp-file-name" id="cmp-name-b" style="color:var(--text3)">Nincs fájl betöltve</div>
           <div class="cmp-file-count" id="cmp-count-b"></div>
-          <div style="display:flex;gap:5px;margin-top:4px">
+          <div style="display:flex;gap:5px;margin-top:6px;align-items:center">
             <button class="cmp-btn-file" onclick="cmpBrowse('b')">📂 Tallózás</button>
-            <div>
-              <label class="cmp-btn-file" style="cursor:pointer">
-                Oszlop: <select id="cmp-col-b" style="background:transparent;border:none;
-                  color:var(--text2);font-size:10px;outline:none;cursor:pointer">
-                  <option value="0">1.</option><option value="1">2.</option>
-                  <option value="2">3.</option><option value="3">4.</option>
-                </select>
-              </label>
-            </div>
+            <label style="font-size:10px;color:var(--text3)">Oszlop:
+              <select id="cmp-col-b" onchange="cmpReload('b')"
+                style="background:var(--input);border:1px solid var(--border);color:var(--text2);
+                font-size:10px;border-radius:4px;padding:1px 4px;outline:none;cursor:pointer">
+                <option value="0">1.</option><option value="1">2.</option>
+                <option value="2">3.</option><option value="3">4.</option>
+              </select>
+            </label>
           </div>
-          <div class="cmp-preview-area" id="cmp-preview-b"></div>
+          <div class="cmp-preview-area" id="cmp-preview-b" style="margin-top:6px"></div>
         </div>
       </div>
 
@@ -972,49 +982,49 @@ select option { background:var(--select-opt); color:var(--text); }
         style="padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;
           border:none;background:linear-gradient(135deg,var(--accent),#5B21B6);color:#fff;
           box-shadow:0 3px 14px rgba(123,92,240,.3);transition:all .2s;opacity:.4">
-        ⚖ Összehasonlítás
+        ⚖ Összehasonlítás indítása
       </button>
 
-      <!-- Results -->
+      <!-- Results — always from A's perspective -->
       <div id="cmp-results-section" style="display:none">
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;
-          letter-spacing:.8px;margin-bottom:8px">Összehasonlítás eredménye</div>
+          letter-spacing:.8px;margin-bottom:8px">
+          Eredmény — az <strong style="color:var(--accent2)">A lista</strong> szemszögéből
+        </div>
         <div class="cmp-results">
 
           <div class="cmp-result-box cmp-only-a">
-            <div class="cmp-box-title">Csak A-ban</div>
+            <div class="cmp-box-title">Nincs B-ben</div>
             <div class="cmp-count" id="cmp-n-only-a">0</div>
-            <div class="cmp-desc">Az A fájlban van,<br>B-ben nincs</div>
+            <div class="cmp-desc">A-ban megvan,<br>B-ből hiányzik</div>
             <button class="cmp-check-btn" onclick="cmpLoadAndCheck('only_a')">
               🔍 Ellenőrzés a weboldalon
             </button>
           </div>
 
-          <div class="cmp-result-box cmp-only-b">
-            <div class="cmp-box-title">Csak B-ben</div>
-            <div class="cmp-count" id="cmp-n-only-b">0</div>
-            <div class="cmp-desc">A B fájlban van,<br>A-ban nincs</div>
-            <button class="cmp-check-btn" onclick="cmpLoadAndCheck('only_b')">
-              🔍 Ellenőrzés a weboldalon
-            </button>
-          </div>
-
           <div class="cmp-result-box cmp-both">
-            <div class="cmp-box-title">Mindkettőben</div>
+            <div class="cmp-box-title">Megvan B-ben is</div>
             <div class="cmp-count" id="cmp-n-both">0</div>
-            <div class="cmp-desc">Mindkét fájlban<br>szerepel</div>
+            <div class="cmp-desc">A-ban megvan,<br>B-ben is megtalálható</div>
             <button class="cmp-check-btn" onclick="cmpLoadAndCheck('both')">
               🔍 Ellenőrzés a weboldalon
             </button>
           </div>
+
+          <div class="cmp-result-box cmp-only-b" style="opacity:.6">
+            <div class="cmp-box-title">Csak B-ben</div>
+            <div class="cmp-count" id="cmp-n-only-b">0</div>
+            <div class="cmp-desc">B-ben van de<br>A-ból hiányzik</div>
+            <button class="cmp-check-btn" onclick="cmpLoadAndCheck('only_b')">
+              🔍 Ellenőrzés
+            </button>
+          </div>
         </div>
 
-        <!-- Optional: show all sets -->
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-          <button class="exp-btn" onclick="cmpExportCSV('only_a')">📄 Csak A → CSV</button>
-          <button class="exp-btn" onclick="cmpExportCSV('only_b')">📄 Csak B → CSV</button>
-          <button class="exp-btn" onclick="cmpExportCSV('both')">📄 Mindkettő → CSV</button>
-          <button class="exp-btn" onclick="cmpLoadAndCheck('all')">⚖ Mind ellenőrzése</button>
+          <button class="exp-btn" onclick="cmpExportCSV('only_a')">📄 Nincs B-ben → CSV</button>
+          <button class="exp-btn" onclick="cmpExportCSV('both')">📄 Megvan B-ben → CSV</button>
+          <button class="exp-btn" onclick="cmpLoadAndCheck('all')">⚖ Mind (A+B) ellenőrzése</button>
         </div>
       </div>
 
@@ -2092,12 +2102,12 @@ function closeCmpIfBg(e) {
 }
 
 async function cmpBrowse(side) {
-  const type_map = ['txt','csv','xlsx'];
-  // Let user choose any supported file type
-  const path = await py('browse_file', 'xlsx'); // opens dialog accepting xlsx/csv/txt
+  const path = await py('browse_file', 'xlsx');
   if (!path) return;
   const ext  = path.split('.').pop().toLowerCase();
   const type = ext==='xlsx'||ext==='xls' ? 'xlsx' : ext==='csv' ? 'csv' : 'txt';
+  _cmp[side + '_path'] = path;
+  _cmp[side + '_type'] = type;
   const col  = parseInt(document.getElementById(`cmp-col-${side}`).value) || 0;
   const result = await py('parse_file', path, type, col);
   if (!result || !result.codes.length) { showToast('Nem sikerült beolvasni a fájlt', '✗'); return; }
@@ -2116,6 +2126,17 @@ async function cmpBrowse(side) {
     const btn = document.getElementById('btn-cmp-run');
     btn.disabled = false; btn.style.opacity = '1';
   }
+}
+
+async function cmpReload(side) {
+  if (!_cmp[side + '_path']) return;
+  const col = parseInt(document.getElementById(`cmp-col-${side}`).value) || 0;
+  const result = await py('parse_file', _cmp[side + '_path'], _cmp[side + '_type'], col);
+  if (!result) return;
+  _cmp[side] = result.codes;
+  document.getElementById(`cmp-count-${side}`).textContent = `${result.codes.length} cikkszám`;
+  document.getElementById(`cmp-preview-${side}`).textContent =
+    result.codes.slice(0,6).join('\n') + (result.codes.length>6 ? `\n...` : '');
 }
 
 function runComparator() {
