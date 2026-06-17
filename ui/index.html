@@ -87,27 +87,17 @@ input::placeholder { color:var(--text3); }
 .toggle { position:relative;display:inline-block;width:36px;height:20px; }
 .toggle input { opacity:0;width:0;height:0; }
 .toggle-sl { position:absolute;cursor:pointer;inset:0;
-  background:rgba(255,255,255,.18);border-radius:20px;transition:.3s;
+  background:rgba(255,255,255,.18);border-radius:20px;transition:.25s;
   border:1px solid rgba(255,255,255,.2); }
 .toggle-sl::before { content:'';position:absolute;height:14px;width:14px;
-  left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;
+  left:3px;bottom:3px;background:white;border-radius:50%;transition:.25s;
   box-shadow:0 1px 3px rgba(0,0,0,.3); }
-.toggle input:checked+.toggle-sl { background:var(--accent);border-color:var(--accent); }
+/* Hardcoded accent — no CSS var needed, works in pywebview */
+.toggle input:checked+.toggle-sl { background:#7B5CF0 !important;border-color:#7B5CF0 !important; }
 .toggle input:checked+.toggle-sl::before { transform:translateX(16px); }
-
-/* Light mode: make toggle track clearly visible */
-[data-theme="light"] .toggle-sl {
-  background:#C4C9E0;
-  border:1px solid #A8AECE;
-}
-[data-theme="light"] .toggle-sl::before {
-  background:white;
-  box-shadow:0 1px 4px rgba(0,0,50,.25);
-}
-[data-theme="light"] .toggle input:checked+.toggle-sl {
-  background:var(--accent);
-  border-color:var(--accent);
-}
+[data-theme="light"] .toggle-sl { background:#C4C9E0;border:1px solid #A8AECE; }
+[data-theme="light"] .toggle-sl::before { background:white;box-shadow:0 1px 4px rgba(0,0,50,.25); }
+[data-theme="light"] .toggle input:checked+.toggle-sl { background:#6B46EF !important;border-color:#6B46EF !important; }
 
 /* Drop zone */
 #drop-zone { border:1.5px dashed var(--border2);border-radius:9px;
@@ -530,7 +520,7 @@ select option { background:var(--select-opt); color:var(--text); }
   <div class="sb-card">
     <div>
       <div class="sb-lbl" data-i18n="url_label">Weboldal URL</div>
-      <input type="text" id="url" placeholder="https://" onblur="onUrlBlur()" oninput="onUrlInput()" onpaste="onUrlPaste(event)">
+      <input type="text" id="url" placeholder="https://" onblur="onUrlBlur();autoSaveSettings()" oninput="onUrlInput()" onpaste="onUrlPaste(event)">
     </div>
     <div class="detect-badge" id="detect-badge" style="display:none;font-size:10px;padding:3px 8px;border-radius:20px;background:var(--glass);border:1px solid var(--border)"></div>
     <div id="url-fix-badge" style="display:none;font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)"></div>
@@ -789,14 +779,14 @@ select option { background:var(--select-opt); color:var(--text); }
         <h3 data-i18n="sec_appearance">Megjelenés</h3>
         <div class="s-row">
           <div><div class="s-label" data-i18n="lbl_theme">Téma</div></div>
-          <select id="s-theme" class="s-select" onchange="applyTheme(this.value)">
+          <select id="s-theme" class="s-select" onchange="applyTheme(this.value);autoSaveSettings()">
   <option value="dark" data-i18n="opt_dark">🌙 Sötét</option>
   <option value="light" data-i18n="opt_light">☀️ Világos</option>
 </select>
         </div>
         <div class="s-row">
           <div><div class="s-label" data-i18n="lbl_language">Nyelv</div></div>
-          <select id="s-lang" class="s-select" onchange="applyLanguage(this.value)">
+          <select id="s-lang" class="s-select" onchange="applyLanguage(this.value);autoSaveSettings()">
             <option value="hu">🇭🇺 Magyar</option>
             <option value="en">🇬🇧 English</option>
             <option value="de">🇩🇪 Deutsch</option>
@@ -811,11 +801,11 @@ select option { background:var(--select-opt); color:var(--text); }
             <div class="s-label" data-i18n="lbl_auto_update">Automatikus frissítés</div>
             <span class="tip" data-tip="Indításkor ellenőrzi a GitHub-ot.">?</span>
           </div>
-          <label class="toggle"><input type="checkbox" id="s-auto-update" checked onchange="toggleManualUpdateBtn()"><span class="toggle-sl"></span></label>
+          <label class="toggle"><input type="checkbox" id="s-auto-update" checked onchange="toggleManualUpdateBtn();autoSaveSettings()"><span class="toggle-sl"></span></label>
         </div>
         <div class="s-row" id="upd-interval-row">
           <div><div class="s-label" data-i18n="lbl_update_freq">Ellenőrzés gyakorisága</div></div>
-          <select id="s-upd-interval" class="s-select">
+          <select id="s-upd-interval" class="s-select" onchange="autoSaveSettings()">
             <option value="on_start" data-i18n="opt_on_start">Indításkor</option>
             <option value="daily" data-i18n="opt_daily">Naponta</option>
             <option value="never" data-i18n="opt_never">Soha</option>
@@ -836,14 +826,14 @@ select option { background:var(--select-opt); color:var(--text); }
             <div class="s-label" data-i18n="lbl_sleep">Lekérések közt (mp)</div>
             <span class="tip" data-tip="Ajánlott: 0.5–2 mp.&#10;Túl alacsony érték terheli a szervert.">?</span>
           </div>
-          <input type="text" id="s-sleep" style="width:80px;text-align:center;padding:6px 8px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none">
+          <input type="text" id="s-sleep" style="width:80px;text-align:center;padding:6px 8px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none" onblur="onSettingInputBlur()" onkeydown="if(event.key==='Enter')onSettingInputBlur()">
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
             <div class="s-label" data-i18n="lbl_save_every">Mentési köz (db)</div>
             <span class="tip" data-tip="Minden N. cikkszám után ment.&#10;Pl. 100 = 100 elemenként.">?</span>
           </div>
-          <input type="text" id="s-save-every" style="width:80px;text-align:center;padding:6px 8px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none">
+          <input type="text" id="s-save-every" style="width:80px;text-align:center;padding:6px 8px;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none" onblur="onSettingInputBlur()" onkeydown="if(event.key==='Enter')onSettingInputBlur()">
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
@@ -860,14 +850,14 @@ select option { background:var(--select-opt); color:var(--text); }
             <div class="s-label" data-i18n="lbl_auto_rm">Auto eltávolítás</div>
             <span class="tip" data-tip="Azonos cikkszámokból csak egyet tart meg.">?</span>
           </div>
-          <label class="toggle"><input type="checkbox" id="s-auto-rm"><span class="toggle-sl"></span></label>
+          <label class="toggle"><input type="checkbox" id="s-auto-rm" onchange="autoSaveSettings()"><span class="toggle-sl"></span></label>
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
             <div class="s-label" data-i18n="lbl_dont_ask">Ne kérdezzen rá</div>
             <span class="tip" data-tip="Nem ugrik fel párbeszédablak,&#10;automatikusan alkalmazza a beállítást.">?</span>
           </div>
-          <label class="toggle"><input type="checkbox" id="s-dont-ask"><span class="toggle-sl"></span></label>
+          <label class="toggle"><input type="checkbox" id="s-dont-ask" onchange="autoSaveSettings()"><span class="toggle-sl"></span></label>
         </div>
         <div class="s-row">
           <div style="display:flex;align-items:center;gap:5px">
@@ -878,9 +868,8 @@ select option { background:var(--select-opt); color:var(--text); }
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-modal-cancel" onclick="closeSettings()">Mégse</button>
-      <button class="btn-modal-save" onclick="saveSettings()">Mentés</button>
+    <div class="modal-footer" style="justify-content:flex-end">
+      <button class="btn-modal-save" onclick="closeSettings()">Bezárás</button>
     </div>
   </div>
 </div>
@@ -1591,16 +1580,11 @@ function applyTheme(theme) {
   const bodyColor = dark ? '#E8EBF0' : '#1E1240';
   document.querySelectorAll('.modal-body,.modal-hdr').forEach(m => m.style.color = bodyColor);
 
-  // Toggle sliders
+  // Toggle sliders — reset inline styles so CSS takes over
   document.querySelectorAll('.toggle-sl').forEach(sl => {
-    const checked = sl.previousElementSibling?.checked;
-    if (checked) {
-      sl.style.background = 'var(--accent)';
-      sl.style.borderColor = 'var(--accent)';
-    } else {
-      sl.style.background  = dark ? 'rgba(255,255,255,.18)' : '#C4C9E0';
-      sl.style.borderColor = dark ? 'rgba(255,255,255,.2)' : '#A8AECE';
-    }
+    sl.style.removeProperty('background');
+    sl.style.removeProperty('background-color');
+    sl.style.removeProperty('border-color');
   });
 
   // s-label explicit color
@@ -1939,6 +1923,46 @@ function resolveUnknown(action) {
 
 
 // ══ SETTINGS ══════════════════════════════════════════════════════════════
+// Auto-save settings on every change
+async function autoSaveSettings() {
+  const cfg = {
+    theme:           document.getElementById('s-theme')?.value || 'dark',
+    language:        document.getElementById('s-lang')?.value  || 'hu',
+    auto_update:     document.getElementById('s-auto-update')?.checked ?? true,
+    update_interval: document.getElementById('s-upd-interval')?.value || 'on_start',
+    sleep_seconds:   parseFloat(document.getElementById('s-sleep')?.value) || 0.8,
+    save_every:      parseInt(document.getElementById('s-save-every')?.value) || 100,
+    show_price:      document.getElementById('s-show-price')?.checked ?? true,
+    auto_rm_dup:     document.getElementById('s-auto-rm')?.checked ?? false,
+    dont_ask_dup:    document.getElementById('s-dont-ask')?.checked ?? false,
+    save_dup_txt:    document.getElementById('s-save-dup')?.checked ?? true,
+    // Persist last used values
+    last_url:        document.getElementById('url')?.value || '',
+    last_sleep:      document.getElementById('sleep')?.value || '0.8',
+    last_save_every: document.getElementById('save-every')?.value || '100',
+  };
+  // Sync hidden inputs
+  document.getElementById('sleep').value       = cfg.sleep_seconds;
+  document.getElementById('save-every').value  = cfg.save_every;
+  document.getElementById('auto-rm-val').value = cfg.auto_rm_dup ? 'true' : 'false';
+  document.getElementById('save-dup-val').value= cfg.save_dup_txt ? 'true' : 'false';
+  await py('save_config', cfg).catch(() => {});
+}
+
+// s-sleep and s-save-every save on blur/enter
+function onSettingInputBlur() { autoSaveSettings(); }
+
+// Global toggle click handler — update visual without applyTheme overhead
+document.addEventListener('change', function(e) {
+  if (e.target.type !== 'checkbox' || !e.target.closest('.toggle')) return;
+  const sl   = e.target.nextElementSibling;
+  if (!sl) return;
+  // Reset inline styles — let CSS :checked rule take over
+  sl.style.removeProperty('background');
+  sl.style.removeProperty('background-color');
+  sl.style.removeProperty('border-color');
+});
+
 function openSettings() {
   const s=document.getElementById('sleep'),se=document.getElementById('save-every');
   if(s?.value) document.getElementById('s-sleep').value=s.value;

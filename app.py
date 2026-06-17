@@ -639,6 +639,126 @@ class Api:
 
         CODE_PATTERN = _re.compile(r'\b([A-Z][A-Z0-9]{1,8}[-_./]?[A-Z0-9]{2,15}|[0-9]{5,15})\b')
 
+        def try_intercars_api(session, base_url: str, max_pages: int) -> list:
+            """
+            Intercars ecat-pct.intercars.eu JSON API.
+            Endpoint: https://ecat-pct.intercars.eu/HU/products
+            Pagination: pageNumber=0,1,2... (0-based)
+            """
+            import json as _json
+            from urllib.parse import urlparse, parse_qs, urlencode, urljoin
+
+            # If user passed the API URL directly, use it as-is
+            if 'ecat-pct.intercars.eu' in base_url:
+                api_base = base_url
+                direct_api = True
+            else:
+                # Build API URL from catalog frontend URL
+                # Extract params from frontend URL
+                parsed   = urlparse(base_url)
+                q_params = parse_qs(parsed.query, keep_blank_values=True)
+
+                # Extract categoryId and parentCategoryId from path & query
+                import re as _re2
+                # path: /c/tecdoc-7700000-7711000-7711080-genart_2094
+                cat_match = _re2.search(r'genart_(\d+)', parsed.path + base_url)
+                cat_id    = f"GenericArticle_{cat_match.group(1)}" if cat_match else ''
+
+                par_match = _re2.search(r'tecdoc.*?-(\d{7,})-genart', parsed.path + base_url)
+                par_id    = f"SalesClassificationNode_{par_match.group(1)}" if par_match else ''
+
+                # Brand from q param: e.g. %3AproductBrandCode%3Aicgoods_2724
+                brand_match = _re2.search(r'icgoods_(\d+)', base_url)
+                brand_code  = f"Brand_{brand_match.group(1)}" if brand_match else ''
+
+                sort_val = q_params.get('sort', ['default'])[0]
+
+                api_base = (
+                    f"https://ecat-pct.intercars.eu/HU/products"
+                    f"?pageSize=100&facets=attributes%2Cavailability%2Cbrands"
+                    f"&sort={sort_val}"
+                    + (f"&categoryId={cat_id}" if cat_id else '')
+                    + (f"&parentCategoryId={par_id}" if par_id else '')
+                    + (f"&brands={brand_code}" if brand_code else '')
+                    + "&x-source=listing-microfrontend"
+                )
+                direct_api = False
+
+            all_codes = []
+            page = 0
+            while page < max_pages:
+                sep = '&' if '?' in api_base else '?'
+                if 'pageNumber=' in api_base:
+                    import re as _re3
+                    api_url = _re3.sub(r'pageNumber=\d+', f'pageNumber={page}', api_base)
+                elif 'pageSize=' in api_base and direct_api:
+                    api_url = api_base if page == 0 else f"{api_base}{sep}pageNumber={page}"
+                else:
+                    api_url = f"{api_base}{sep}pageNumber={page}"
+
+                # Replace pageSize with 100 for efficiency
+                api_url = _re.sub(r'pageSize=\d+', 'pageSize=100', api_url)
+
+                try:
+                    r = session.get(api_url, timeout=25, headers={
+                        "Accept": "application/json, application/vnd.universal.search.engine+json",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Referer": "https://hu.e-cat.intercars.eu/",
+                        "Origin":  "https://hu.e-cat.intercars.eu",
+                    })
+                    if r.status_code != 200:
+                        break
+                    data = r.json()
+                except Exception as e:
+                    self._js(f"onExtractProgress('API hiba {page}: {str(e)[:40]}', 0)")
+                    break
+
+                # Extract product codes from JSON response
+                # Try various common JSON structures
+                products = (data.get('products') or data.get('items') or
+                           data.get('results') or data.get('data') or
+                           data.get('productList') or [])
+
+                # Intercars might nest under 'searchResults' or 'catalog'
+                if not products:
+                    for key in ['searchResults','catalog','productSearchResult']:
+                        sub = data.get(key, {})
+                        if isinstance(sub, dict):
+                            products = (sub.get('results') or sub.get('products') or
+                                       sub.get('items') or [])
+                            if products: break
+                        elif isinstance(sub, list):
+                            products = sub; break
+
+                if not products:
+                    break
+
+                found_on_page = 0
+                for p in (products if isinstance(products, list) else []):
+                    if not isinstance(p, dict): continue
+                    for field in ['code','sku','mpn','articleNumber','productCode',
+                                  'itemCode','partNumber','catalogItemId','id','symbol']:
+                        val = str(p.get(field) or '').strip()
+                        if val and 2 < len(val) <= 40 and not val.isdigit():
+                            all_codes.append(val); found_on_page += 1; break
+
+                self._js(f"onExtractProgress('API {page+1}. oldal: {found_on_page} kód', {min(85, 20+page*5)})")
+
+                # Pagination info
+                pagination = data.get('pagination') or data.get('pageable') or {}
+                if isinstance(pagination, dict):
+                    total_pages = (pagination.get('totalPages') or
+                                  pagination.get('numberOfPages') or 999)
+                    page += 1
+                    if page >= total_pages:
+                        break
+                else:
+                    if found_on_page == 0:
+                        break
+                    page += 1
+
+            return all_codes
+
         def extract_from_jsonld(html: str) -> list:
             """Extract SKU/MPN/productID from JSON-LD schema.org scripts."""
             import json as _json
@@ -850,6 +970,16 @@ class Api:
 
             for base_url in urls:
                 self._js(f"onExtractProgress('Oldal elemzése: {base_url}', 15)")
+
+                # ── STRATEGY 0: Intercars / SAP Hybris JSON API ─────────────
+                if 'intercars' in base_url.lower() or 'e-cat' in base_url.lower():
+                    self._js("onExtractProgress('Intercars JSON API próbálkozás...', 18)")
+                    api_codes = try_intercars_api(session, base_url, max_pages)
+                    if api_codes:
+                        self._js(f"onExtractProgress('API: {len(api_codes)} kód kinyerve', 90)")
+                        all_codes.extend(api_codes)
+                        total_pages += 1
+                        continue  # Skip HTML scraping for this URL
 
                 # ── STRATEGY 1: Detect Excel/CSV export link ────────────────
                 try:
