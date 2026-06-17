@@ -637,6 +637,15 @@ select option { background:var(--select-opt); color:var(--text); }
       <button class="btn-sm btn-restart" onclick="restartProcess()" data-i18n="btn_restart">↺ Újra</button>
     </div>
     <button class="btn-sec" onclick="clearLog()" data-i18n="btn_clear_log">🗑 Log törlése</button>
+    <div style="height:1px;background:var(--border);margin:2px 0"></div>
+    <button class="btn-sec" onclick="openExtractor()"
+      style="border-color:rgba(123,92,240,.4);color:var(--accent2);background:rgba(123,92,240,.08)">
+      🔍 Kód kinyerő
+    </button>
+    <button class="btn-sec" onclick="openComparator()"
+      style="border-color:rgba(34,197,94,.3);color:var(--green);background:rgba(34,197,94,.06)">
+      ⚖ Fájl összehasonlító
+    </button>
   </div>
 
 </aside>
