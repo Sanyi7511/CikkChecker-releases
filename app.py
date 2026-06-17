@@ -616,6 +616,138 @@ class Api:
             self._js(f"onLog({json.dumps(f'[ERR] Frissítési hiba: {e}')})")
             self._js("onUpdateFailed()")
 
+    # ── Kód kinyerő (Code Extractor) ─────────────────────────────────────
+    def scrape_codes(self, urls: list, selector: str, max_pages: int,
+                     user: str = "", password: str = "") -> dict:
+        """Scrape product codes from source website(s)."""
+        import re as _re
+        try:
+            from bs4 import BeautifulSoup as BS
+        except ImportError:
+            return {"error": "beautifulsoup4 not installed", "codes": [], "pages": 0}
+
+        all_codes = []
+        total_pages = 0
+
+        # Common patterns for product codes: uppercase+digits, with optional separators
+        CODE_PATTERN = _re.compile(
+            r'\b([A-Z][A-Z0-9]{1,6}[-_]?[A-Z0-9]{2,12}|[0-9]{4,14})\b'
+        )
+        # Common CSS selectors to try for product codes
+        AUTO_SELECTORS = [
+            '[data-sku]', '[data-product-id]', '[data-article]', '[data-code]',
+            '[data-item-number]', '[data-part-number]',
+            '.sku', '.product-code', '.article-code', '.item-code',
+            '.product-id', '.part-number', '.art-nr', '.item-nr',
+            'span.sku', 'td.sku', 'div.sku',
+            '[itemprop="sku"]', '[itemprop="productID"]',
+        ]
+
+        with requests.Session() as session:
+            session.headers.update({"User-Agent": "Mozilla/5.0"})
+
+            # Login if needed
+            if user and password:
+                for url in urls:
+                    try:
+                        login_url = url.rstrip("/") + "/login"
+                        r = session.get(login_url, timeout=15)
+                        from bs4 import BeautifulSoup as _BS2
+                        soup = _BS2(r.text, "html.parser")
+                        form = soup.find("form")
+                        if form:
+                            action = form.get("action", login_url)
+                            data = {inp.get("name",""): inp.get("value","")
+                                    for inp in form.find_all("input") if inp.get("name")}
+                            data["user-name"] = user
+                            data["password"] = password
+                            session.post(action, data=data, timeout=15)
+                    except: pass
+
+            for base_url in urls:
+                seen_on_page = set()
+                for page_num in range(1, max_pages + 1):
+                    # Build paginated URL
+                    if page_num == 1:
+                        page_url = base_url
+                    else:
+                        # Try common pagination patterns
+                        if '?' in base_url:
+                            page_url = f"{base_url}&page={page_num}"
+                        else:
+                            page_url = f"{base_url}?page={page_num}"
+
+                    try:
+                        self._js(f"onExtractProgress('Oldal lekérése: {page_url}', {int(page_num/max_pages*80)})")
+                        r = session.get(page_url, timeout=20)
+                        if r.status_code != 200:
+                            break
+                        html = r.text
+                        soup = BS(html, "html.parser")
+                        page_codes = []
+
+                        # Try specific selector first
+                        if selector:
+                            try:
+                                for el in soup.select(selector):
+                                    txt = el.get("data-sku") or el.get("data-code") or                                           el.get("data-product-id") or el.get_text(strip=True)
+                                    if txt and len(txt) <= 30 and len(txt) >= 3:
+                                        page_codes.append(txt.strip())
+                            except: pass
+
+                        # Try auto selectors
+                        if not page_codes:
+                            for sel in AUTO_SELECTORS:
+                                try:
+                                    els = soup.select(sel)
+                                    for el in els:
+                                        # Check data attributes first
+                                        for attr in ["data-sku","data-code","data-product-id",
+                                                     "data-article","data-item-number"]:
+                                            val = el.get(attr, "").strip()
+                                            if val and 2 < len(val) <= 30:
+                                                page_codes.append(val)
+                                        # Then text content
+                                        txt = el.get_text(strip=True)
+                                        if txt and 2 < len(txt) <= 30 and CODE_PATTERN.match(txt):
+                                            page_codes.append(txt)
+                                    if page_codes:
+                                        break
+                                except: pass
+
+                        # Fallback: regex on full page text
+                        if not page_codes:
+                            text = soup.get_text(" ")
+                            matches = CODE_PATTERN.findall(text)
+                            # Filter out common false positives
+                            page_codes = [m for m in matches
+                                         if not m.isdigit() or len(m) >= 6][:500]
+
+                        if not page_codes:
+                            break  # No codes found, stop pagination
+
+                        # Deduplicate within this URL
+                        new_codes = [c for c in page_codes if c not in seen_on_page]
+                        if not new_codes:
+                            break  # Same page content, stop
+
+                        seen_on_page.update(new_codes)
+                        all_codes.extend(new_codes)
+                        total_pages += 1
+
+                    except Exception as e:
+                        self._js(f"onExtractProgress('Hiba: {str(e)[:60]}', 0)")
+                        break
+
+            # Deduplicate all codes while preserving order
+            seen = set()
+            unique = [c for c in all_codes if not (c in seen or seen.add(c))]
+
+            self._js(f"onExtractProgress('Kész — {len(unique)} cikkszám kinyerve', 100)")
+            return {"codes": unique, "pages": total_pages}
+
+        return {"codes": [], "pages": 0}
+
     # ── History ──────────────────────────────────────────────────────────
     def _history_path(self):
         hist_dir = os.path.join(os.path.expanduser("~"), "AppData", "Local",
