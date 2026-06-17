@@ -619,12 +619,255 @@ class Api:
     # ── Kód kinyerő (Code Extractor) ─────────────────────────────────────
     def scrape_codes(self, urls: list, selector: str, max_pages: int,
                      user: str = "", password: str = "") -> dict:
+        """
+        Scrape product codes from source website(s).
+        Strategies (tried in order):
+          1. Excel/CSV export button detection → download & parse
+          2. Specific CSS selector (if provided)
+          3. Auto-detect common SKU HTML patterns
+          4. Regex fallback on page text
+        """
         """Scrape product codes from source website(s)."""
-        import re as _re
+        import re as _re, io as _io
         try:
             from bs4 import BeautifulSoup as BS
         except ImportError:
-            return {"error": "beautifulsoup4 not installed", "codes": [], "pages": 0}
+            return {"error": "beautifulsoup4 nincs telepítve", "codes": [], "pages": 0}
+
+        all_codes = []
+        total_pages = 0
+
+        CODE_PATTERN = _re.compile(r'\b([A-Z][A-Z0-9]{1,8}[-_./]?[A-Z0-9]{2,15}|[0-9]{5,15})\b')
+
+        AUTO_SELECTORS = [
+            '[data-sku]','[data-product-id]','[data-article]','[data-code]',
+            '[data-item-number]','[data-part-number]','[data-cikkszam]',
+            '.sku','.product-code','.article-code','.item-code','.cikkszam',
+            '.product-id','.art-nr','.item-nr','.part-number',
+            'span.sku','td.sku','div.sku',
+            '[itemprop="sku"]','[itemprop="productID"]',
+            # Table column detection (e.g. admin panels)
+            'td:nth-child(2)','td.col-cikkszam','td.col-sku',
+        ]
+
+        # Excel/CSV export link patterns
+        EXPORT_PATTERNS = [
+            _re.compile(r'letölt', _re.I),
+            _re.compile(r'export', _re.I),
+            _re.compile(r'excel', _re.I),
+            _re.compile(r'download', _re.I),
+            _re.compile(r'\.xlsx?$', _re.I),
+            _re.compile(r'\.csv$', _re.I),
+        ]
+
+        def parse_excel_bytes(data: bytes) -> list:
+            """Extract codes from Excel file bytes."""
+            try:
+                from openpyxl import load_workbook
+                wb = load_workbook(_io.BytesIO(data), read_only=True, data_only=True)
+                codes = []
+                for ws in wb.worksheets:
+                    header = None
+                    sku_col = None
+                    for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
+                        if row_idx == 0:
+                            # Detect SKU column from header
+                            header = [str(c or "").lower() for c in row]
+                            for i, h in enumerate(header):
+                                if any(k in h for k in ['cikkszám','cikkszam','sku','code',
+                                                         'article','termék','product','item']):
+                                    sku_col = i
+                                    break
+                            if sku_col is None and len(header) > 0:
+                                sku_col = 0  # fallback: first column
+                            continue
+                        if sku_col is not None and sku_col < len(row):
+                            val = str(row[sku_col] or "").strip()
+                            if val and val.lower() not in ('none','nan','') and 2 < len(val) <= 40:
+                                codes.append(val)
+                wb.close()
+                return codes
+            except Exception as e:
+                self._js(f"onExtractProgress('Excel parse hiba: {str(e)[:60]}', 0)")
+                return []
+
+        def parse_csv_bytes(data: bytes) -> list:
+            """Extract codes from CSV file bytes."""
+            import csv as _csv
+            codes = []
+            try:
+                text = data.decode('utf-8-sig', errors='replace')
+                reader = _csv.reader(_io.StringIO(text))
+                header = None; sku_col = 0
+                for row_idx, row in enumerate(reader):
+                    if row_idx == 0:
+                        header = [c.lower() for c in row]
+                        for i, h in enumerate(header):
+                            if any(k in h for k in ['cikkszám','cikkszam','sku','code','article']):
+                                sku_col = i; break
+                        continue
+                    if row and sku_col < len(row):
+                        val = row[sku_col].strip()
+                        if val and 2 < len(val) <= 40:
+                            codes.append(val)
+            except: pass
+            return codes
+
+        with requests.Session() as session:
+            session.headers.update({"User-Agent": "Mozilla/5.0"})
+
+            # Login to source site if needed
+            if user and password:
+                for src_url in urls:
+                    try:
+                        base = src_url.rstrip("/").rsplit("/", 1)[0] if "/" in src_url.replace("https://","").replace("http://","") else src_url
+                        for login_path in ["/login", "/admin/login", "/bejelentkezes"]:
+                            try:
+                                lr = session.get(base + login_path, timeout=10)
+                                if lr.status_code != 200: continue
+                                soup = BS(lr.text, "html.parser")
+                                form = soup.find("form")
+                                if not form: continue
+                                action = form.get("action") or (base + login_path)
+                                if not action.startswith("http"): action = base + action
+                                data = {inp.get("name",""):inp.get("value","")
+                                        for inp in form.find_all("input") if inp.get("name")}
+                                data["user-name"] = user; data["password"] = password
+                                session.post(action, data=data, timeout=15, allow_redirects=True)
+                                self._js("onExtractProgress('Bejelentkezve a forrás oldalra', 10)")
+                                break
+                            except: continue
+                    except: pass
+
+            for base_url in urls:
+                self._js(f"onExtractProgress('Oldal elemzése: {base_url}', 15)")
+
+                # ── STRATEGY 1: Detect Excel/CSV export link ────────────────
+                try:
+                    r = session.get(base_url, timeout=20)
+                    if r.status_code == 200:
+                        soup = BS(r.text, "html.parser")
+                        export_url = None
+
+                        # Look for download links/buttons
+                        for el in soup.find_all(['a', 'button', 'input']):
+                            href = el.get('href','') or el.get('action','') or ''
+                            text = (el.get_text() or el.get('value','') or
+                                    el.get('title','') or '').strip()
+                            # Check if any export pattern matches href or text
+                            combined = href + ' ' + text
+                            if any(p.search(combined) for p in EXPORT_PATTERNS):
+                                if href and href != '#':
+                                    if not href.startswith('http'):
+                                        from urllib.parse import urljoin
+                                        href = urljoin(base_url, href)
+                                    export_url = href
+                                    self._js(f"onExtractProgress('Excel/CSV export link megtalálva: {text[:40]}', 20)")
+                                    break
+
+                        if export_url:
+                            self._js(f"onExtractProgress('Letöltés: {export_url[:60]}', 25)")
+                            er = session.get(export_url, timeout=60)
+                            if er.status_code == 200:
+                                ct = er.headers.get('content-type','').lower()
+                                if 'excel' in ct or 'spreadsheet' in ct or 'xlsx' in export_url.lower() or 'xls' in export_url.lower():
+                                    codes = parse_excel_bytes(er.content)
+                                elif 'csv' in ct or 'csv' in export_url.lower():
+                                    codes = parse_csv_bytes(er.content)
+                                else:
+                                    # Try Excel first, then CSV
+                                    codes = parse_excel_bytes(er.content) or parse_csv_bytes(er.content)
+                                if codes:
+                                    self._js(f"onExtractProgress('Excel/CSV feldolgozva: {len(codes)} cikkszám', 90)")
+                                    all_codes.extend(codes)
+                                    total_pages += 1
+                                    continue  # Skip page-by-page for this URL
+                except Exception as e:
+                    self._js(f"onExtractProgress('Export keresési hiba: {str(e)[:50]}', 15)")
+
+                # ── STRATEGY 2-4: Page-by-page scraping ────────────────────
+                seen_on_url = set()
+                for page_num in range(1, max_pages + 1):
+                    if page_num == 1:
+                        page_url = base_url
+                    else:
+                        sep = '&' if '?' in base_url else '?'
+                        page_url = f"{base_url}{sep}page={page_num}"
+
+                    try:
+                        pct = 20 + int(page_num / max_pages * 70)
+                        self._js(f"onExtractProgress('{page_num}. oldal: {page_url}', {pct})")
+                        r = session.get(page_url, timeout=20)
+                        if r.status_code != 200: break
+                        html = r.text
+                        soup = BS(html, "html.parser")
+                        page_codes = []
+
+                        # Strategy 2: user-provided selector
+                        if selector:
+                            try:
+                                for el in soup.select(selector):
+                                    val = (el.get("data-sku") or el.get("data-code") or
+                                           el.get("data-product-id") or el.get_text(strip=True))
+                                    if val and 2 < len(val.strip()) <= 40:
+                                        page_codes.append(val.strip())
+                            except: pass
+
+                        # Strategy 3: auto selectors
+                        if not page_codes:
+                            for sel_try in AUTO_SELECTORS:
+                                try:
+                                    for el in soup.select(sel_try):
+                                        for attr in ["data-sku","data-code","data-product-id","data-cikkszam"]:
+                                            val = el.get(attr,"").strip()
+                                            if val and 2 < len(val) <= 40:
+                                                page_codes.append(val)
+                                        txt = el.get_text(strip=True)
+                                        if txt and 2 < len(txt) <= 40 and CODE_PATTERN.match(txt):
+                                            page_codes.append(txt)
+                                    if page_codes: break
+                                except: pass
+
+                        # Strategy 4: table column detection (admin panels)
+                        if not page_codes:
+                            for tbl in soup.find_all('table'):
+                                headers = [th.get_text(strip=True).lower()
+                                          for th in tbl.find_all('th')]
+                                sku_idx = next((i for i,h in enumerate(headers)
+                                               if any(k in h for k in
+                                                      ['cikkszám','cikkszam','sku','code','article'])), None)
+                                if sku_idx is not None:
+                                    for tr in tbl.find_all('tr')[1:]:
+                                        tds = tr.find_all('td')
+                                        if sku_idx < len(tds):
+                                            val = tds[sku_idx].get_text(strip=True)
+                                            if val and 2 < len(val) <= 40:
+                                                page_codes.append(val)
+
+                        # Strategy 5: regex fallback
+                        if not page_codes:
+                            text = soup.get_text(" ")
+                            page_codes = [m for m in CODE_PATTERN.findall(text)
+                                         if not m.isdigit() or len(m) >= 6][:300]
+
+                        if not page_codes: break
+                        new_codes = [c for c in page_codes if c not in seen_on_url]
+                        if not new_codes: break
+                        seen_on_url.update(new_codes)
+                        all_codes.extend(new_codes)
+                        total_pages += 1
+
+                    except Exception as e:
+                        self._js(f"onExtractProgress('Oldal hiba: {str(e)[:50]}', pct)")
+                        break
+
+            # Deduplicate
+            seen = set()
+            unique = [c for c in all_codes if not (c in seen or seen.add(c))]
+            self._js(f"onExtractProgress('Kész — {len(unique)} cikkszám', 100)")
+            return {"codes": unique, "pages": total_pages}
+
+        return {"codes": [], "pages": 0}
 
         all_codes = []
         total_pages = 0

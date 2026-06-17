@@ -361,6 +361,50 @@ select option { background:var(--select-opt); color:var(--text); }
   animation:slideUp .25s ease;pointer-events:none; }
 @keyframes slideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 
+/* ── Comparator modal ──────────────────────────────────────────────────── */
+.cmp-modal { width:640px;max-height:88vh; }
+.cmp-file-row { display:flex;gap:8px;align-items:flex-start; }
+.cmp-file-box {
+  flex:1;background:var(--glass);border:2px dashed var(--border);
+  border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;
+  transition:border-color .2s;min-height:80px;
+}
+.cmp-file-box.loaded { border-style:solid; }
+.cmp-file-box.file-a.loaded { border-color:var(--accent); }
+.cmp-file-box.file-b.loaded { border-color:var(--green); }
+.cmp-file-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px; }
+.cmp-file-a .cmp-file-label { color:var(--accent2); }
+.cmp-file-b .cmp-file-label { color:var(--green); }
+.cmp-file-name { font-size:11px;color:var(--text2);word-break:break-all; }
+.cmp-file-count { font-size:10px;color:var(--text3); }
+.cmp-btn-file { padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;
+  cursor:pointer;border:1px solid var(--border);background:var(--glass);
+  color:var(--text2);transition:all .15s;white-space:nowrap; }
+.cmp-btn-file:hover { background:var(--glass2);color:var(--text); }
+
+/* Result sections */
+.cmp-results { display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px; }
+.cmp-result-box { border-radius:9px;padding:10px;display:flex;flex-direction:column;gap:5px; }
+.cmp-only-a  { background:rgba(123,92,240,.1);border:1px solid rgba(123,92,240,.3); }
+.cmp-only-b  { background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.3); }
+.cmp-both    { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3); }
+.cmp-box-title { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px; }
+.cmp-only-a  .cmp-box-title { color:var(--accent2); }
+.cmp-only-b  .cmp-box-title { color:var(--green); }
+.cmp-both    .cmp-box-title { color:var(--amber); }
+.cmp-count { font-size:22px;font-weight:800;line-height:1; }
+.cmp-only-a  .cmp-count { color:var(--accent2); }
+.cmp-only-b  .cmp-count { color:var(--green); }
+.cmp-both    .cmp-count { color:var(--amber); }
+.cmp-desc  { font-size:10px;color:var(--text3);line-height:1.4; }
+.cmp-check-btn { margin-top:6px;padding:4px 10px;border-radius:6px;font-size:10px;
+  font-weight:600;cursor:pointer;border:none;transition:all .15s;
+  background:rgba(255,255,255,.12);color:var(--text2); }
+.cmp-check-btn:hover { background:rgba(255,255,255,.2);color:var(--text); }
+.cmp-preview-area { background:var(--card);border:1px solid var(--border);
+  border-radius:7px;padding:6px 10px;font-family:Consolas,monospace;
+  font-size:10px;color:var(--text3);height:60px;overflow-y:auto;line-height:1.5; }
+
 /* ── Extractor modal ────────────────────────────────────────────────── */
 .extractor-modal { width:600px;max-height:85vh; }
 .ext-url-list { display:flex;flex-direction:column;gap:5px; }
@@ -854,6 +898,125 @@ select option { background:var(--select-opt); color:var(--text); }
   </div>
 </div>
 
+<!-- ═══ FÁJL ÖSSZEHASONLÍTÓ MODAL ═══════════════════════════════════════ -->
+<div class="overlay" id="comparator-overlay" onclick="closeCmpIfBg(event)">
+  <div class="modal cmp-modal">
+    <div class="modal-hdr">
+      <span style="font-size:18px">⚖</span>
+      <div>
+        <div class="modal-title">Fájl összehasonlító</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">
+          Két fájl cikkszámait hasonlítja össze, majd ellenőrzi a weboldalon
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeComparator()">✕</button>
+    </div>
+
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- File inputs -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+        <!-- File A -->
+        <div class="cmp-file-box cmp-file-a" id="cmp-box-a">
+          <div class="cmp-file-label cmp-file-a">📘 A fájl</div>
+          <div class="cmp-file-name" id="cmp-name-a" style="color:var(--text3)">Nincs fájl betöltve</div>
+          <div class="cmp-file-count" id="cmp-count-a"></div>
+          <div style="display:flex;gap:5px;margin-top:4px">
+            <button class="cmp-btn-file" onclick="cmpBrowse('a')">📂 Tallózás</button>
+            <div>
+              <label class="cmp-btn-file" style="cursor:pointer">
+                Oszlop: <select id="cmp-col-a" style="background:transparent;border:none;
+                  color:var(--text2);font-size:10px;outline:none;cursor:pointer">
+                  <option value="0">1.</option><option value="1">2.</option>
+                  <option value="2">3.</option><option value="3">4.</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="cmp-preview-area" id="cmp-preview-a"></div>
+        </div>
+
+        <!-- File B -->
+        <div class="cmp-file-box cmp-file-b" id="cmp-box-b">
+          <div class="cmp-file-label" style="color:var(--green)">📗 B fájl</div>
+          <div class="cmp-file-name" id="cmp-name-b" style="color:var(--text3)">Nincs fájl betöltve</div>
+          <div class="cmp-file-count" id="cmp-count-b"></div>
+          <div style="display:flex;gap:5px;margin-top:4px">
+            <button class="cmp-btn-file" onclick="cmpBrowse('b')">📂 Tallózás</button>
+            <div>
+              <label class="cmp-btn-file" style="cursor:pointer">
+                Oszlop: <select id="cmp-col-b" style="background:transparent;border:none;
+                  color:var(--text2);font-size:10px;outline:none;cursor:pointer">
+                  <option value="0">1.</option><option value="1">2.</option>
+                  <option value="2">3.</option><option value="3">4.</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="cmp-preview-area" id="cmp-preview-b"></div>
+        </div>
+      </div>
+
+      <!-- Compare button -->
+      <button id="btn-cmp-run" onclick="runComparator()" disabled
+        style="padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;
+          border:none;background:linear-gradient(135deg,var(--accent),#5B21B6);color:#fff;
+          box-shadow:0 3px 14px rgba(123,92,240,.3);transition:all .2s;opacity:.4">
+        ⚖ Összehasonlítás
+      </button>
+
+      <!-- Results -->
+      <div id="cmp-results-section" style="display:none">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;
+          letter-spacing:.8px;margin-bottom:8px">Összehasonlítás eredménye</div>
+        <div class="cmp-results">
+
+          <div class="cmp-result-box cmp-only-a">
+            <div class="cmp-box-title">Csak A-ban</div>
+            <div class="cmp-count" id="cmp-n-only-a">0</div>
+            <div class="cmp-desc">Az A fájlban van,<br>B-ben nincs</div>
+            <button class="cmp-check-btn" onclick="cmpLoadAndCheck('only_a')">
+              🔍 Ellenőrzés a weboldalon
+            </button>
+          </div>
+
+          <div class="cmp-result-box cmp-only-b">
+            <div class="cmp-box-title">Csak B-ben</div>
+            <div class="cmp-count" id="cmp-n-only-b">0</div>
+            <div class="cmp-desc">A B fájlban van,<br>A-ban nincs</div>
+            <button class="cmp-check-btn" onclick="cmpLoadAndCheck('only_b')">
+              🔍 Ellenőrzés a weboldalon
+            </button>
+          </div>
+
+          <div class="cmp-result-box cmp-both">
+            <div class="cmp-box-title">Mindkettőben</div>
+            <div class="cmp-count" id="cmp-n-both">0</div>
+            <div class="cmp-desc">Mindkét fájlban<br>szerepel</div>
+            <button class="cmp-check-btn" onclick="cmpLoadAndCheck('both')">
+              🔍 Ellenőrzés a weboldalon
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional: show all sets -->
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="exp-btn" onclick="cmpExportCSV('only_a')">📄 Csak A → CSV</button>
+          <button class="exp-btn" onclick="cmpExportCSV('only_b')">📄 Csak B → CSV</button>
+          <button class="exp-btn" onclick="cmpExportCSV('both')">📄 Mindkettő → CSV</button>
+          <button class="exp-btn" onclick="cmpLoadAndCheck('all')">⚖ Mind ellenőrzése</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="closeComparator()">Bezárás</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ KÓD KINYERŐ MODAL ════════════════════════════════════════════════ -->
 <div class="overlay" id="extractor-overlay" onclick="closeExtractorIfBg(event)">
   <div class="modal extractor-modal">
@@ -950,9 +1113,10 @@ select option { background:var(--select-opt); color:var(--text); }
     </div>
 
     <div class="modal-footer" style="justify-content:space-between">
-      <div style="font-size:10px;color:var(--text3);max-width:280px">
-        A betöltés a kinyert kódokat forrásként tölti be, majd az Indítás gombbal
-        ellenőrizheted a cél weboldalon.
+      <div style="font-size:10px;color:var(--text3);max-width:300px;line-height:1.5">
+        Az app automatikusan felismeri az <strong style="color:var(--text2)">Excel exportot</strong>,
+        CSV letöltést, vagy oldalanként scrape-el. A kódokat ezután az
+        <strong style="color:var(--text2)">Indítás</strong> gombbal ellenőrizheted a cél weboldalon.
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn-modal-cancel" onclick="closeExtractor()">Mégse</button>
@@ -1903,6 +2067,98 @@ function exportPDF() {
 function ds() {
   const d=new Date();
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ══ FÁJL ÖSSZEHASONLÍTÓ ═══════════════════════════════════════════════════
+const _cmp = { a: [], b: [], results: { only_a:[], only_b:[], both:[] } };
+
+function openComparator() {
+  document.getElementById('comparator-overlay').classList.add('show');
+}
+function closeComparator() {
+  document.getElementById('comparator-overlay').classList.remove('show');
+}
+function closeCmpIfBg(e) {
+  if (e.target === document.getElementById('comparator-overlay')) closeComparator();
+}
+
+async function cmpBrowse(side) {
+  const type_map = ['txt','csv','xlsx'];
+  // Let user choose any supported file type
+  const path = await py('browse_file', 'xlsx'); // opens dialog accepting xlsx/csv/txt
+  if (!path) return;
+  const ext  = path.split('.').pop().toLowerCase();
+  const type = ext==='xlsx'||ext==='xls' ? 'xlsx' : ext==='csv' ? 'csv' : 'txt';
+  const col  = parseInt(document.getElementById(`cmp-col-${side}`).value) || 0;
+  const result = await py('parse_file', path, type, col);
+  if (!result || !result.codes.length) { showToast('Nem sikerült beolvasni a fájlt', '✗'); return; }
+
+  _cmp[side] = result.codes;
+  const fname = path.split(/[/\\]/).pop();
+  document.getElementById(`cmp-name-${side}`).textContent   = fname;
+  document.getElementById(`cmp-name-${side}`).style.color   = side==='a' ? 'var(--accent2)' : 'var(--green)';
+  document.getElementById(`cmp-count-${side}`).textContent  = `${result.codes.length} cikkszám`;
+  document.getElementById(`cmp-box-${side}`).classList.add('loaded');
+  document.getElementById(`cmp-preview-${side}`).textContent = result.codes.slice(0,8).join('\n') + (result.codes.length>8 ? `\n... +${result.codes.length-8} további` : '');
+  showToast(`${side.toUpperCase()} fájl: ${result.codes.length} cikkszám`, '✅');
+
+  // Enable compare button if both loaded
+  if (_cmp.a.length && _cmp.b.length) {
+    const btn = document.getElementById('btn-cmp-run');
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
+function runComparator() {
+  if (!_cmp.a.length || !_cmp.b.length) return;
+  const setA = new Set(_cmp.a);
+  const setB = new Set(_cmp.b);
+
+  _cmp.results.only_a = _cmp.a.filter(c => !setB.has(c));
+  _cmp.results.only_b = _cmp.b.filter(c => !setA.has(c));
+  _cmp.results.both   = _cmp.a.filter(c =>  setB.has(c));
+
+  document.getElementById('cmp-n-only-a').textContent = _cmp.results.only_a.length;
+  document.getElementById('cmp-n-only-b').textContent = _cmp.results.only_b.length;
+  document.getElementById('cmp-n-both').textContent   = _cmp.results.both.length;
+  document.getElementById('cmp-results-section').style.display = 'block';
+
+  showToast(`Összehasonlítás kész — ${_cmp.results.only_a.length} csak A, ${_cmp.results.only_b.length} csak B, ${_cmp.results.both.length} közös`, '⚖');
+}
+
+function cmpLoadAndCheck(set) {
+  const map = { only_a: _cmp.results.only_a, only_b: _cmp.results.only_b,
+                both: _cmp.results.both, all: [...new Set([..._cmp.a, ..._cmp.b])] };
+  const codes = map[set] || [];
+  if (!codes.length) { showToast('Nincs adat ebben a halmazban', '⚠'); return; }
+
+  state.sourceData = [...codes];
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.querySelector('.dz-icon').textContent = '✅';
+  const labels = { only_a:'Csak A fájlból', only_b:'Csak B fájlból',
+                   both:'Mindkét fájlból', all:'A + B összes' };
+  document.querySelector('.dz-text').textContent = `${labels[set]}: ${codes.length} cikkszám`;
+  document.querySelector('.dz-sub').textContent  = 'Ellenőrzésre kész';
+  document.querySelector('.dz-sub').style.color  = 'var(--green)';
+  document.getElementById('txt-path').value      = '';
+
+  closeComparator();
+  showToast(`${codes.length} cikkszám betöltve — kattints az Indításra`, '✅');
+}
+
+function cmpExportCSV(set) {
+  const map = { only_a: _cmp.results.only_a, only_b: _cmp.results.only_b, both: _cmp.results.both };
+  const codes = map[set] || [];
+  if (!codes.length) { showToast('Nincs exportálható adat', '⚠'); return; }
+  const labels = { only_a:'CsakA', only_b:'CsakB', both:'Kozos' };
+  const bom  = '\uFEFF';
+  const blob = new Blob([bom + codes.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `CikkChecker_${labels[set]}_${ds()}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast(`${codes.length} cikkszám exportálva`);
 }
 
 // ══ KÓD KINYERŐ ══════════════════════════════════════════════════════════
