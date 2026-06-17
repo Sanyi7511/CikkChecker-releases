@@ -639,6 +639,115 @@ class Api:
 
         CODE_PATTERN = _re.compile(r'\b([A-Z][A-Z0-9]{1,8}[-_./]?[A-Z0-9]{2,15}|[0-9]{5,15})\b')
 
+        def extract_from_jsonld(html: str) -> list:
+            """Extract SKU/MPN/productID from JSON-LD schema.org scripts."""
+            import json as _json
+            codes = []
+            try:
+                soup_jl = BS(html, "html.parser")
+                for script in soup_jl.find_all("script", type="application/ld+json"):
+                    try:
+                        data = _json.loads(script.string or "")
+                        items = data if isinstance(data, list) else [data]
+                        for item in items:
+                            # Handle @graph
+                            if "@graph" in item:
+                                items.extend(item["@graph"])
+                            t = item.get("@type","")
+                            if t in ("Product","ItemList","ListItem") or "product" in str(t).lower():
+                                for field in ["sku","mpn","productID","gtin13","gtin8","identifier","code"]:
+                                    val = item.get(field,"")
+                                    if val and 2 < len(str(val)) <= 40:
+                                        codes.append(str(val).strip())
+                                # Check offers
+                                offers = item.get("offers", [])
+                                if isinstance(offers, dict): offers = [offers]
+                                for o in offers:
+                                    for f in ["sku","mpn","itemOffered"]:
+                                        val = o.get(f,"")
+                                        if val and isinstance(val,str) and 2 < len(val) <= 40:
+                                            codes.append(val.strip())
+                    except: pass
+            except: pass
+            return codes
+
+        def extract_from_meta(html: str) -> list:
+            """Extract product codes from meta tags."""
+            codes = []
+            try:
+                soup_m = BS(html, "html.parser")
+                meta_names = ["product:sku","product:id","sku","og:sku","article:code",
+                              "product_id","item_number","part_number","mpn","cikkszam"]
+                for name in meta_names:
+                    for m in soup_m.find_all("meta", attrs={"name": name}):
+                        val = m.get("content","").strip()
+                        if val and 2 < len(val) <= 40: codes.append(val)
+                    for m in soup_m.find_all("meta", attrs={"property": name}):
+                        val = m.get("content","").strip()
+                        if val and 2 < len(val) <= 40: codes.append(val)
+            except: pass
+            return codes
+
+        def extract_from_embedded_json(html: str) -> list:
+            """Extract codes from embedded JavaScript objects / window.__data__ patterns."""
+            import json as _json
+            codes = []
+            try:
+                # Find JSON blobs in script tags
+                patterns = [
+                    _re.compile(r'"code"\s*:\s*"([A-Z0-9][A-Z0-9_\-./]{2,30})"'),
+                    _re.compile(r'"sku"\s*:\s*"([A-Z0-9][A-Z0-9_\-./]{2,30})"'),
+                    _re.compile(r'"mpn"\s*:\s*"([A-Z0-9][A-Z0-9_\-./]{2,30})"'),
+                    _re.compile(r'"productCode"\s*:\s*"([A-Z0-9][A-Z0-9_\-./]{2,30})"'),
+                    _re.compile(r'"articleNumber"\s*:\s*"([A-Z0-9][A-Z0-9_\-./]{2,30})"'),
+                    _re.compile(r'"itemCode"\s*:\s*"([A-Z0-9][A-Z0-9_\-./]{2,30})"'),
+                    _re.compile(r'"cikkszam"\s*:\s*"([^"]{2,40})"', _re.I),
+                    # SAP Hybris/Commerce Cloud patterns
+                    _re.compile(r'data-product-code=(["\']?)([A-Z0-9][A-Z0-9_\-.]{2,30})\\1'),
+                    _re.compile(r'data-code=(["\']?)([A-Z0-9][A-Z0-9_\-.]{2,30})\\1'),
+                ]
+                for pat in patterns:
+                    codes.extend(pat.findall(html))
+            except: pass
+            return [c for c in codes if 2 < len(c) <= 40]
+
+        def get_next_page_url(base_url: str, next_page_idx: int, html: str) -> str:
+            """
+            Build next page URL.
+            Convention (Intercars & most sites):
+              - First page  = base URL with NO page param
+              - Second page = page=1
+              - Third page  = page=2
+              So next_page_idx is already the correct value for the page= param.
+            """
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, urljoin
+
+            # First try HTML next-link (most reliable)
+            try:
+                soup_p = BS(html, "html.parser")
+                for sel in ['a[rel="next"]', 'a.next', 'a.pagination-next',
+                            'li.next a', 'li.pagination__item--next a',
+                            '.pagination a.active + a', 'a.page-link[aria-label*="ext"]']:
+                    el = soup_p.select_one(sel)
+                    if el and el.get('href') and el.get('href') not in ('#',''):
+                        return urljoin(base_url, el['href'])
+                nl = soup_p.find('a', attrs={'aria-label': _re.compile(r'next|következő|weiter|nasl', _re.I)})
+                if nl and nl.get('href') and nl.get('href') != '#':
+                    return urljoin(base_url, nl['href'])
+            except: pass
+
+            # Build from base URL
+            parsed = urlparse(base_url)
+            # Strip existing page/currentPage from base
+            params = parse_qs(parsed.query, keep_blank_values=True)
+            params.pop('page', None)
+            params.pop('currentPage', None)
+
+            # Add page param (page=1 = second page, page=2 = third, etc.)
+            params['page'] = [str(next_page_idx)]
+            new_query = urlencode({k: v[0] for k,v in params.items()})
+            return urlunparse(parsed._replace(query=new_query))
+
         AUTO_SELECTORS = [
             '[data-sku]','[data-product-id]','[data-article]','[data-code]',
             '[data-item-number]','[data-part-number]','[data-cikkszam]',
@@ -787,24 +896,43 @@ class Api:
 
                 # ── STRATEGY 2-4: Page-by-page scraping ────────────────────
                 seen_on_url = set()
+                # Strip any existing page param from base URL — first page has none
+                from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                _p = urlparse(base_url)
+                _q = parse_qs(_p.query, keep_blank_values=True)
+                _q.pop('page', None); _q.pop('currentPage', None)
+                _clean_base = urlunparse(_p._replace(query=urlencode({k:v[0] for k,v in _q.items()})))
+
+                page_url = _clean_base  # first page = no page param
                 for page_num in range(1, max_pages + 1):
-                    if page_num == 1:
-                        page_url = base_url
-                    else:
-                        sep = '&' if '?' in base_url else '?'
-                        page_url = f"{base_url}{sep}page={page_num}"
+                    pass  # page_url updated in loop
 
                     try:
                         pct = 20 + int(page_num / max_pages * 70)
-                        self._js(f"onExtractProgress('{page_num}. oldal: {page_url}', {pct})")
-                        r = session.get(page_url, timeout=20)
+                        self._js(f"onExtractProgress('{page_num}. oldal: {page_url[:60]}', {pct})")
+                        r = session.get(page_url, timeout=25,
+                            headers={"Accept": "text/html,application/xhtml+xml",
+                                     "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.8"})
                         if r.status_code != 200: break
                         html = r.text
                         soup = BS(html, "html.parser")
                         page_codes = []
 
-                        # Strategy 2: user-provided selector
-                        if selector:
+                        # Strategy 0: JSON-LD (schema.org) — highest precision
+                        jld_codes = extract_from_jsonld(html)
+                        if jld_codes:
+                            page_codes.extend(jld_codes)
+
+                        # Strategy 0b: Embedded JSON / data attributes
+                        if not page_codes:
+                            page_codes.extend(extract_from_embedded_json(html))
+
+                        # Strategy 0c: Meta tags
+                        if not page_codes:
+                            page_codes.extend(extract_from_meta(html))
+
+                        # Strategy 1: user-provided selector
+                        if not page_codes and selector:
                             try:
                                 for el in soup.select(selector):
                                     val = (el.get("data-sku") or el.get("data-code") or
@@ -813,12 +941,13 @@ class Api:
                                         page_codes.append(val.strip())
                             except: pass
 
-                        # Strategy 3: auto selectors
+                        # Strategy 2: auto selectors
                         if not page_codes:
                             for sel_try in AUTO_SELECTORS:
                                 try:
                                     for el in soup.select(sel_try):
-                                        for attr in ["data-sku","data-code","data-product-id","data-cikkszam"]:
+                                        for attr in ["data-sku","data-code","data-product-id",
+                                                     "data-product-code","data-cikkszam","data-articleno"]:
                                             val = el.get(attr,"").strip()
                                             if val and 2 < len(val) <= 40:
                                                 page_codes.append(val)
@@ -828,14 +957,14 @@ class Api:
                                     if page_codes: break
                                 except: pass
 
-                        # Strategy 4: table column detection (admin panels)
+                        # Strategy 3: table column detection (admin panels)
                         if not page_codes:
                             for tbl in soup.find_all('table'):
                                 headers = [th.get_text(strip=True).lower()
                                           for th in tbl.find_all('th')]
                                 sku_idx = next((i for i,h in enumerate(headers)
                                                if any(k in h for k in
-                                                      ['cikkszám','cikkszam','sku','code','article'])), None)
+                                                      ['cikkszám','cikkszam','sku','code','article','mpn'])), None)
                                 if sku_idx is not None:
                                     for tr in tbl.find_all('tr')[1:]:
                                         tds = tr.find_all('td')
@@ -844,7 +973,7 @@ class Api:
                                             if val and 2 < len(val) <= 40:
                                                 page_codes.append(val)
 
-                        # Strategy 5: regex fallback
+                        # Strategy 4: regex fallback
                         if not page_codes:
                             text = soup.get_text(" ")
                             page_codes = [m for m in CODE_PATTERN.findall(text)
@@ -857,8 +986,16 @@ class Api:
                         all_codes.extend(new_codes)
                         total_pages += 1
 
+                        # Next page URL — page_num=1 → page=1, page_num=2 → page=2
+                        if page_num < max_pages:
+                            next_url = get_next_page_url(base_url, page_num, html)
+                            if next_url and next_url != page_url:
+                                page_url = next_url
+                            else:
+                                break
+
                     except Exception as e:
-                        self._js(f"onExtractProgress('Oldal hiba: {str(e)[:50]}', pct)")
+                        self._js(f"onExtractProgress('Oldal hiba: {str(e)[:50]}', 0)")
                         break
 
             # Deduplicate
