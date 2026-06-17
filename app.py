@@ -249,6 +249,29 @@ class Api:
         """Legacy compat — redirect to browse_file."""
         return self.browse_file("txt")
 
+    def uninstall_app(self):
+        """Run the Inno Setup uninstaller."""
+        import glob
+        if sys.platform != "win32":
+            return False
+        search_paths = [
+            os.path.join(os.environ.get("LOCALAPPDATA",""), "Programs", "CikkChecker"),
+            os.path.join(os.environ.get("ProgramFiles",""), "CikkChecker"),
+            os.path.join(os.path.dirname(sys.executable)),
+            BASE_DIR,
+        ]
+        uninstaller = None
+        for folder in search_paths:
+            if not folder: continue
+            import glob as _gl
+            found = _gl.glob(os.path.join(folder, "unins*.exe"))
+            if found: uninstaller = found[0]; break
+        if uninstaller and os.path.exists(uninstaller):
+            subprocess.Popen([uninstaller], creationflags=0x08000000)
+            self._window.destroy()
+            return True
+        return False
+
     def browse_folder(self):
         """Open folder browser dialog."""
         path = self._tk_dialog(lambda r: filedialog.askdirectory(parent=r, title="Export mappa"))

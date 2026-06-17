@@ -669,6 +669,15 @@ select option { background:var(--select-opt); color:var(--text); }
     </div>
     <input type="hidden" id="txt-path">
     <input type="hidden" id="xlsx-path">
+    <!-- Kézi bevitel -->
+    <div style="margin-top:2px">
+      <div class="sb-lbl" style="margin-bottom:4px" data-i18n="manual_title">Kézi bevitel</div>
+      <textarea id="manual-codes"
+        placeholder="Soronként 1 cikkszám..."
+        style="width:100%;height:65px;background:var(--input);border:1px solid var(--border);
+          border-radius:7px;color:var(--text);font-family:Consolas,monospace;font-size:10px;
+          padding:6px 8px;resize:none;outline:none;line-height:1.5"></textarea>
+    </div>
   </div>
 
   <!-- Scheduler -->
@@ -795,17 +804,12 @@ select option { background:var(--select-opt); color:var(--text); }
     <div class="right-panel">
       <div class="tabs">
         <div class="tab active" onclick="switchTab('log', this)" data-i18n="log_title">Napló</div>
-        <div class="tab" onclick="switchTab('manual', this)" data-i18n="manual_title">Kézi bevitel</div>
+
       </div>
       <div class="tab-pane active" id="tab-log">
         <div class="log-body" id="log-body"></div>
       </div>
-      <div class="tab-pane" id="tab-manual">
-        <div class="manual-pane">
-          <textarea id="manual-codes" placeholder="Soronként 1 cikkszám..."></textarea>
-        </div>
-      </div>
-    </div>
+          </div>
 
   </div>
 </main>
@@ -970,7 +974,15 @@ select option { background:var(--select-opt); color:var(--text); }
           <label class="toggle"><input type="checkbox" id="s-save-dup" checked><span class="toggle-sl"></span></label>
         </div>
       </div>
-    </div>
+    
+    <div class="modal-footer" style="justify-content:space-between;align-items:center">
+      <button onclick="confirmUninstall()" style="padding:6px 12px;border-radius:7px;
+        font-size:11px;cursor:pointer;border:1px solid rgba(239,68,68,.3);
+        background:rgba(239,68,68,.08);color:var(--red)">
+        🗑 Alkalmazás eltávolítása
+      </button>
+      <button class="btn-modal-save" onclick="closeSettings()">Bezárás</button>
+    </div></div>
 
   </div>
 </div>
@@ -1120,8 +1132,13 @@ select option { background:var(--select-opt); color:var(--text); }
 
     </div>
 
-    <div class="modal-footer">
-      <button class="btn-modal-cancel" onclick="closeComparator()">Bezárás</button>
+    <div class="modal-footer" style="justify-content:space-between;align-items:center">
+      <button onclick="confirmUninstall()" style="padding:6px 12px;border-radius:7px;
+        font-size:11px;cursor:pointer;border:1px solid rgba(239,68,68,.3);
+        background:rgba(239,68,68,.08);color:var(--red)">
+        🗑 Alkalmazás eltávolítása
+      </button>
+      <button class="btn-modal-save" onclick="closeSettings()">Bezárás</button>
     </div>
   </div>
 </div>
@@ -1566,19 +1583,30 @@ const state = {
 };
 
 // ══ INIT ══════════════════════════════════════════════════════════════════
+// Wait for pywebview API to be ready (max 5 seconds)
+async function waitForPy() {
+  for (let i = 0; i < 50; i++) {
+    if (window.pywebview?.api) return true;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return false;
+}
+
 window.addEventListener('load', async () => {
-  // Load config first — apply saved theme instead of always starting dark
+  // Default theme while waiting for config
+  applyTheme('dark');
+  toggleLogin();
+
+  const ready = await waitForPy();
+  if (!ready) { console.warn('pywebview not ready'); return; }
+
   try {
     const cfg = await py('get_config');
     if (cfg) {
       applyConfig(cfg);
-    } else {
-      applyTheme('dark');
-      toggleLogin();
     }
   } catch(e) {
-    applyTheme('dark');
-    toggleLogin();
+    console.warn('get_config failed:', e);
   }
   setTimeout(() => py('check_update').catch(()=>{}), 3000);
 });
@@ -2071,6 +2099,14 @@ function resolveUnknown(action) {
 
 
 // ══ SETTINGS ══════════════════════════════════════════════════════════════
+// Uninstall with double confirmation
+async function confirmUninstall() {
+  if (!confirm('Biztosan el szeretnéd távolítani a CikkChecker alkalmazást?')) return;
+  if (!confirm('Megerősítés: az eltávolítás után az app bezárul. Folytatod?')) return;
+  const ok = await py('uninstall_app');
+  if (!ok) alert('Az eltávolító nem található. Használd a Vezérlőpultot.');
+}
+
 // OS theme change listener for "rendszer" mode
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   const current = document.getElementById('s-theme')?.value;
@@ -2206,7 +2242,11 @@ function applyConfig(cfg) {
   }
   if (cfg.theme) {
     const themeEl = document.getElementById('s-theme');
-    if (themeEl) themeEl.value = cfg.theme;
+    // Find matching option (exact or prefix match)
+    if (themeEl) {
+      const opt = Array.from(themeEl.options).find(o => o.value === cfg.theme);
+      if (opt) themeEl.value = cfg.theme;
+    }
     applyTheme(cfg.theme);
   }
   set('sleep',cfg.sleep_seconds); set('save-every',cfg.save_every);
@@ -2281,6 +2321,10 @@ function applyConfig(cfg) {
     sn('sort-order').value      = cfg.sort_order;
 
   if (cfg.language) applyLanguage(cfg.language);
+  if (cfg.app_version) {
+    const el = document.getElementById('app-version');
+    if (el) el.textContent = 'v' + cfg.app_version;
+  }
   toggleLogin(); toggleManualUpdateBtn();
 }
 
@@ -2806,9 +2850,17 @@ function confirmStart() {
 }
 
 // Load history on init
-window.addEventListener('load', async () => {
-  // (runs after existing load handler)
+// pywebview fires this when API is ready — use as additional config restore trigger
+window.addEventListener('pywebviewready', async () => {
+  try {
+    const cfg = await py('get_config');
+    if (cfg) applyConfig(cfg);
+  } catch(e) {}
   setTimeout(loadHistory, 500);
+});
+
+window.addEventListener('load', async () => {
+  setTimeout(loadHistory, 1500);
 });
 
 // Recheck button enabled by onDone() after each completed run
