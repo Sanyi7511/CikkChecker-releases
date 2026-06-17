@@ -95,9 +95,9 @@ input::placeholder { color:var(--text3); }
 /* Hardcoded accent — no CSS var needed, works in pywebview */
 .toggle input:checked+.toggle-sl { background:#7B5CF0 !important;border-color:#7B5CF0 !important; }
 .toggle input:checked+.toggle-sl::before { transform:translateX(16px); }
-[data-theme="light"] .toggle-sl, [data-theme="hofehér"] .toggle-sl { background:#C4C9E0;border:1px solid #A8AECE; }
-[data-theme="light"] .toggle-sl::before, [data-theme="hofehér"] .toggle-sl::before { background:white;box-shadow:0 1px 4px rgba(0,0,50,.25); }
-[data-theme="light"] .toggle input:checked+.toggle-sl, [data-theme="hofehér"] .toggle input:checked+.toggle-sl { background:#6B46EF !important;border-color:#6B46EF !important; }
+[data-theme="light"] .toggle-sl, [data-theme="hofehér"] .toggle-sl, [data-theme="hofeher"] .toggle-sl { background:#C4C9E0;border:1px solid #A8AECE; }
+[data-theme="light"] .toggle-sl::before, [data-theme="hofehér"] .toggle-sl::before, [data-theme="hofeher"] .toggle-sl::before { background:white;box-shadow:0 1px 4px rgba(0,0,50,.25); }
+[data-theme="light"] .toggle input:checked+.toggle-sl, [data-theme="hofehér"] .toggle input:checked+.toggle-sl, [data-theme="hofeher"] .toggle input:checked+.toggle-sl { background:#6B46EF !important;border-color:#6B46EF !important; }
 
 /* Drop zone */
 #drop-zone { border:1.5px dashed var(--border2);border-radius:9px;
@@ -126,8 +126,8 @@ select { width:100%;padding:6px 10px;font-size:11px;
   background-repeat:no-repeat;background-position:right 8px center; }
 select:focus { border-color:var(--accent); }
 select option { background:var(--select-opt); color:var(--text); }
-[data-theme="light"] select option, [data-theme="hofehér"] select option { background:#EEF0FF; color:#1E1240; }
-[data-theme="light"] select, [data-theme="hofehér"] select { background-color:#fff; color:#1E1240; }
+[data-theme="light"] select option, [data-theme="hofehér"] select option, [data-theme="hofeher"] select option { background:#EEF0FF; color:#1E1240; }
+[data-theme="light"] select, [data-theme="hofehér"] select, [data-theme="hofeher"] select { background-color:#fff; color:#1E1240; }
 
 /* Sidebar action buttons */
 .btn-start { width:100%;padding:11px;border-radius:9px;font-size:13px;font-weight:700;
@@ -280,15 +280,15 @@ select option { background:var(--select-opt); color:var(--text); }
 .s-group { display:flex;flex-direction:column;gap:10px;margin-bottom:20px; }
 .s-group:last-child { margin-bottom:0; }
 .s-group h3 { font-size:9px;color:#7B8CB0;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:4px;font-weight:700; }
-[data-theme="light"] .s-group h3 { color:#6B5FB0; }
+[data-theme="light"] .s-group h3, [data-theme="hofeher"] .s-group h3 { color:#6B5FB0; }
 .s-row { display:flex;align-items:center;justify-content:space-between;padding:6px 0; }
 .s-label { font-size:12px;color:#E8EBF0;font-weight:500;display:block; }
 .s-desc  { font-size:10px;color:#9BA3B4;margin-top:2px; }
 .s-row > div:first-child { flex:1;min-width:0;margin-right:12px; }
-[data-theme="light"] .s-label, [data-theme="hofehér"] .s-label { color:#1E1240; }
-[data-theme="light"] .s-desc, [data-theme="hofehér"] .s-desc { color:#4B3F80; }
+[data-theme="light"] .s-label, [data-theme="hofehér"] .s-label, [data-theme="hofeher"] .s-label { color:#1E1240; }
+[data-theme="light"] .s-desc, [data-theme="hofehér"] .s-desc, [data-theme="hofeher"] .s-desc { color:#4B3F80; }
 .modal-body { color:#E8EBF0; }
-[data-theme="light"] .modal-body, [data-theme="hofehér"] .modal-body { color:#1E1240; }
+[data-theme="light"] .modal-body, [data-theme="hofehér"] .modal-body, [data-theme="hofeher"] .modal-body { color:#1E1240; }
 .s-select { width:130px;font-size:11px; }
 
 /* Start modal */
@@ -1132,13 +1132,12 @@ select option { background:var(--select-opt); color:var(--text); }
 
     </div>
 
-    <div class="modal-footer" style="justify-content:space-between;align-items:center">
+    <div class="modal-footer" style="justify-content:flex-start">
       <button onclick="confirmUninstall()" style="padding:6px 12px;border-radius:7px;
         font-size:11px;cursor:pointer;border:1px solid rgba(239,68,68,.3);
         background:rgba(239,68,68,.08);color:var(--red)">
         🗑 Alkalmazás eltávolítása
       </button>
-      <button class="btn-modal-save" onclick="closeSettings()">Bezárás</button>
     </div>
   </div>
 </div>
@@ -1660,58 +1659,39 @@ function onDone() {
 }
 function onUpdateAvailable(version, asset) {
   state.updateVersion = version; state.updateAsset = asset;
-
-  // Sidebar update box
+  // Only show sidebar box — no main banner
   const box = document.getElementById('sb-update-box');
   const ver = document.getElementById('sb-update-ver');
   if (box) box.style.display = 'block';
   if (ver) ver.textContent = `v${version} elérhető`;
-
-  // Also update main banner (keep it hidden until user triggers)
-  document.getElementById('update-version').textContent = `Új verzió elérhető: v${version}`;
-  document.getElementById('update-icon').textContent = '🚀';
-  document.getElementById('upd-progress-wrap').style.display = 'none';
-  document.getElementById('upd-now-btn').style.display = 'block';
-  document.getElementById('upd-dismiss-btn').style.display = 'block';
-  // Don't auto-show banner — sidebar box is enough
-  onLog(`[!!] Új verzió: v${version}`);
 }
 function onUpdateDownloading(version) {
-  // Sidebar progress
   const prog = document.getElementById('sb-upd-progress');
   const btns = document.getElementById('sb-upd-btns');
   const stat = document.getElementById('sb-upd-status');
+  const ver  = document.getElementById('sb-update-ver');
   if (prog) prog.style.display = 'block';
   if (btns) btns.style.display = 'none';
   if (stat) stat.textContent = `v${version} letöltése...`;
-  const ver = document.getElementById('sb-update-ver');
-  if (ver) ver.textContent = `v${version} letöltése...`;
-  // Banner
-  document.getElementById('update-banner').classList.add('show');
-  document.getElementById('update-version').textContent = `v${version} letöltése...`;
-  document.getElementById('update-icon').textContent = '⬇';
-  document.getElementById('upd-progress-wrap').style.display = 'flex';
-  document.getElementById('upd-now-btn').style.display = 'none';
-  document.getElementById('upd-dismiss-btn').style.display = 'none';
+  if (ver)  ver.textContent  = `v${version} letöltése...`;
 }
 function onUpdateProgress(pct) {
-  document.getElementById('upd-progress-bar').style.width = pct + '%';
-  document.getElementById('upd-pct').textContent = pct + '%';
-  const bar = document.getElementById('sb-upd-bar');
-  if (bar) bar.style.width = pct + '%';
+  const bar  = document.getElementById('sb-upd-bar');
   const stat = document.getElementById('sb-upd-status');
-  if (stat) stat.textContent = `Letöltés: ${pct}%`;
+  if (bar)  bar.style.width    = pct + '%';
+  if (stat) stat.textContent   = `Letöltés: ${pct}%`;
 }
 function onUpdateReady() {
-  document.getElementById('update-version').textContent = 'Telepítés... Az app automatikusan újraindul.';
-  document.getElementById('update-icon').textContent = '🔄';
   const stat = document.getElementById('sb-upd-status');
+  const ver  = document.getElementById('sb-update-ver');
   if (stat) stat.textContent = 'Telepítés... Újraindulás hamarosan';
+  if (ver)  ver.textContent  = 'Telepítés folyamatban...';
 }
 function onUpdateFailed() {
-  document.getElementById('update-version').textContent = 'Frissítés sikertelen';
-  document.getElementById('update-icon').textContent = '❌';
-  document.getElementById('upd-dismiss-btn').style.display = 'block';
+  const stat = document.getElementById('sb-upd-status');
+  const btns = document.getElementById('sb-upd-btns');
+  if (stat) stat.textContent  = '⚠ Frissítés sikertelen';
+  if (btns) btns.style.display = 'flex';
 }
 
 // ══ UI HELPERS ════════════════════════════════════════════════════════════
@@ -1730,75 +1710,133 @@ function toggleLogin() {
 
 function applyTheme(theme) {
   let t = theme || 'dark';
-  // "rendszer" follows OS preference
   if (t === 'rendszer') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    t = prefersDark ? 'dark' : 'hofeher';
+    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'hofeher';
   }
   document.documentElement.setAttribute('data-theme', t);
 
-  const LIGHT_THEMES = ['hofehér','hofeher','light'];
-  const dark = !LIGHT_THEMES.includes(t);
+  const LIGHT = ['hofeher','hofehér','light'];
+  const dark  = !LIGHT.includes(t);
 
-  // Modal backgrounds — CSS vars sometimes don't re-render in pywebview
-  const modalBg   = dark ? 'linear-gradient(145deg,rgba(26,15,60,.98),rgba(13,8,33,.98))'
-                          : 'linear-gradient(145deg,rgba(230,228,255,.98),rgba(240,242,255,.98))';
-  document.querySelectorAll('.modal').forEach(m => m.style.background = modalBg);
+  // ── Per-theme palette ──────────────────────────────────────────────────
+  const themes = {
+    dark:      { bg:'#0D0821', bg2:'#1a0f3c', accent:'#7B5CF0', text:'#E8EBF0', text2:'#9BA3B4', text3:'#4A5568', modal:'rgba(26,15,60,.98)', modal2:'rgba(13,8,33,.98)', sidebar:'rgba(13,8,33,.85)', input:'rgba(0,0,0,.35)', inputBdr:'rgba(255,255,255,.10)', optBg:'#1a0f3c' },
+    hofeher:   { bg:'#EEF0FF', bg2:'#E0E4FF', accent:'#6B46EF', text:'#1E1240', text2:'#4B3F80', text3:'#9388B8', modal:'rgba(230,228,255,.98)', modal2:'rgba(240,242,255,.98)', sidebar:'rgba(230,228,255,.9)', input:'rgba(255,255,255,.85)', inputBdr:'rgba(100,80,200,.2)', optBg:'#E0E4FF' },
+    tengerke:  { bg:'#040D1A', bg2:'#081B35', accent:'#1E6FCC', text:'#D0E8FF', text2:'#7AABDD', text3:'#3A6090', modal:'rgba(8,24,50,.98)', modal2:'rgba(4,14,30,.98)', sidebar:'rgba(4,13,26,.9)', input:'rgba(0,20,60,.5)', inputBdr:'rgba(30,111,204,.2)', optBg:'#0A1E38' },
+    erdo:      { bg:'#050E08', bg2:'#0A1C10', accent:'#18794E', text:'#C8F0D8', text2:'#6AB888', text3:'#2A6040', modal:'rgba(8,24,14,.98)', modal2:'rgba(5,14,8,.98)', sidebar:'rgba(5,14,8,.9)', input:'rgba(0,30,12,.5)', inputBdr:'rgba(24,121,78,.2)', optBg:'#0A1C10' },
+    borostyan: { bg:'#120A00', bg2:'#1E1000', accent:'#C87820', text:'#FFE0A0', text2:'#C89040', text3:'#7A5018', modal:'rgba(24,14,0,.98)', modal2:'rgba(14,8,0,.98)', sidebar:'rgba(18,10,0,.9)', input:'rgba(40,20,0,.5)', inputBdr:'rgba(200,120,32,.2)', optBg:'#1E1200' },
+    karbon:    { bg:'#0E0E0F', bg2:'#161618', accent:'#555558', text:'#E4E4E4', text2:'#888888', text3:'#484848', modal:'rgba(18,18,20,.98)', modal2:'rgba(12,12,14,.98)', sidebar:'rgba(14,14,15,.95)', input:'rgba(0,0,0,.5)', inputBdr:'rgba(255,255,255,.08)', optBg:'#1A1A1C' },
+    rozsa:     { bg:'#140610', bg2:'#200A18', accent:'#B82860', text:'#FFD0E0', text2:'#C06080', text3:'#802040', modal:'rgba(24,8,18,.98)', modal2:'rgba(14,4,10,.98)', sidebar:'rgba(20,6,16,.9)', input:'rgba(40,0,20,.5)', inputBdr:'rgba(184,40,96,.2)', optBg:'#200A18' },
+  };
+  const p = themes[t] || themes.dark;
 
-  // Modal text colors
-  const bodyColor = dark ? '#E8EBF0' : '#1E1240';
-  document.querySelectorAll('.modal-body,.modal-hdr').forEach(m => m.style.color = bodyColor);
+  // ── App background ─────────────────────────────────────────────────────
+  const bgEl = document.querySelector('.bg');
+  if (bgEl) bgEl.style.background =
+    `linear-gradient(135deg,${p.bg} 0%,${p.bg2} 50%,${p.bg} 100%)`;
+  document.body.style.background = p.bg;
+  document.body.style.color      = p.text;
 
-  // Toggle sliders — reset inline styles so CSS takes over
-  document.querySelectorAll('.toggle-sl').forEach(sl => {
-    sl.style.removeProperty('background');
-    sl.style.removeProperty('background-color');
-    sl.style.removeProperty('border-color');
+  // ── Sidebar ────────────────────────────────────────────────────────────
+  const sb = document.querySelector('.sb');
+  if (sb) { sb.style.background = p.sidebar; sb.style.borderColor = p.inputBdr; }
+
+  // ── Blobs ──────────────────────────────────────────────────────────────
+  document.querySelectorAll('.blob').forEach(b => b.style.opacity = dark ? '0.3' : '0.15');
+
+  // ── Modals ────────────────────────────────────────────────────────────
+  const modalBg = `linear-gradient(145deg,${p.modal},${p.modal2})`;
+  document.querySelectorAll('.modal').forEach(m => {
+    m.style.background   = modalBg;
+    m.style.borderColor  = p.inputBdr;
   });
+  document.querySelectorAll('.modal-body,.modal-hdr').forEach(m => m.style.color = p.text);
+  document.querySelectorAll('.modal-title').forEach(m => m.style.color = p.text);
+  document.querySelectorAll('.modal-close').forEach(m => m.style.color = p.text3);
 
-  // s-label explicit color
-  document.querySelectorAll('.s-label').forEach(el => el.style.color = bodyColor);
-  document.querySelectorAll('.s-group h3').forEach(el => el.style.color = dark ? '#7B8CB0' : '#6B5FB0');
-  document.querySelectorAll('.s-desc').forEach(el => el.style.color = dark ? '#9BA3B4' : '#4B3F80');
-  document.querySelectorAll('.modal-title').forEach(el => el.style.color = bodyColor);
-  document.querySelectorAll('.modal-close').forEach(el => el.style.color = dark ? '#4A5568' : '#9388B8');
+  // ── Labels ────────────────────────────────────────────────────────────
+  document.querySelectorAll('.s-label').forEach(el => el.style.color = p.text);
+  document.querySelectorAll('.s-desc').forEach(el => el.style.color = p.text2);
+  document.querySelectorAll('.s-group h3').forEach(el => el.style.color = p.text3);
 
-  // Input / select styling
-  const inputBg  = dark ? 'rgba(0,0,0,0.35)'        : 'rgba(255,255,255,0.8)';
-  const inputBdr = dark ? 'rgba(255,255,255,0.10)'  : 'rgba(100,80,200,0.15)';
-  // Arrow SVG color
-  const arrowColor = dark ? '%234A5568' : '%239388B8';
-  const arrowSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='${arrowColor}' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`;
-
-  document.querySelectorAll('.modal input[type=text],.modal input[type=password],.sm-input').forEach(el => {
-    el.style.backgroundColor = inputBg;
-    el.style.borderColor     = inputBdr;
-    el.style.color           = bodyColor;
-  });
-
-  // ALL selects — update bg, border, color, arrow, and option children
-  const optBg  = dark ? '#1a0f3c' : '#EEF0FF';
-  const optClr = dark ? '#E8EBF0' : '#1E1240';
+  // ── Selects ───────────────────────────────────────────────────────────
+  const arrowCol = dark ? '%234A5568' : '%239388B8';
+  const arrowSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='${arrowCol}' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`;
   document.querySelectorAll('select').forEach(el => {
-    el.style.backgroundColor    = inputBg;
-    el.style.borderColor        = inputBdr;
-    el.style.color              = bodyColor;
+    el.style.backgroundColor    = p.input;
+    el.style.borderColor        = p.inputBdr;
+    el.style.color              = p.text;
     el.style.backgroundImage    = arrowSvg;
     el.style.backgroundRepeat   = 'no-repeat';
     el.style.backgroundPosition = 'right 8px center';
     Array.from(el.options).forEach(opt => {
-      opt.style.backgroundColor = optBg;
-      opt.style.color           = optClr;
+      opt.style.backgroundColor = p.optBg;
+      opt.style.color           = p.text;
     });
   });
 
-  // Sidebar background
-  const sidebarBg = dark ? 'rgba(13,8,33,0.85)' : 'rgba(230,228,255,0.9)';
-  const sb = document.querySelector('.sb');
-  if (sb) sb.style.background = sidebarBg;
+  // ── Inputs ────────────────────────────────────────────────────────────
+  document.querySelectorAll('input[type=text],input[type=password],input[type=time],textarea').forEach(el => {
+    el.style.backgroundColor = p.input;
+    el.style.borderColor     = p.inputBdr;
+    el.style.color           = p.text;
+  });
 
-  // Main app background blobs opacity
-  document.querySelectorAll('.blob').forEach(b => b.style.opacity = dark ? '0.3' : '0.18');
+  // ── Toggle sliders — explicit per-theme colors ──────────────────────
+  document.querySelectorAll('.toggle input').forEach(inp => {
+    const sl = inp.nextElementSibling;
+    if (!sl) return;
+    if (inp.checked) {
+      sl.style.background  = p.accent;
+      sl.style.borderColor = p.accent;
+    } else {
+      sl.style.background  = dark ? 'rgba(255,255,255,.18)' : '#C4C9E0';
+      sl.style.borderColor = dark ? 'rgba(255,255,255,.2)'  : '#A8AECE';
+    }
+  });
+
+  // ── Sidebar cards & sections ──────────────────────────────────────────
+  document.querySelectorAll('.sb-card,.sched-card,.cmp-file-box,.ext-url-list').forEach(el => {
+    el.style.background  = dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.7)';
+    el.style.borderColor = p.inputBdr;
+  });
+  document.querySelectorAll('.sb-sec,.sb-lbl,.s-label,.cmp-file-label,.dz-text').forEach(el => {
+    el.style.color = p.text;
+  });
+  document.querySelectorAll('.sb-logo-name,.modal-title,.tbl-row,.code-cell').forEach(el => {
+    el.style.color = p.text;
+  });
+  document.querySelectorAll('.text2,.sb-logo-ver,.dz-sub,.cmp-desc,.ext-stat').forEach(el => {
+    el.style.color = p.text2;
+  });
+
+  // ── Update box in sidebar ────────────────────────────────────────────
+  const updBox = document.getElementById('sb-update-box');
+  if (updBox) {
+    updBox.style.background   = dark ? `rgba(${p.accent.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.12)` : 'rgba(107,70,239,.1)';
+    updBox.style.borderColor  = dark ? 'rgba(123,92,240,.35)' : 'rgba(107,70,239,.3)';
+  }
+
+  // ── Stats row ─────────────────────────────────────────────────────────
+  const statsRow = document.querySelector('.stats-row');
+  if (statsRow) {
+    statsRow.style.background   = dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.75)';
+    statsRow.style.borderColor  = p.inputBdr;
+  }
+
+  // ── Results & right panel ─────────────────────────────────────────────
+  document.querySelectorAll('.results-panel,.right-panel').forEach(el => {
+    el.style.background  = dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.75)';
+    el.style.borderColor = p.inputBdr;
+  });
+
+  // ── Update theme toggle button visual in settings select ──────────────
+  const themeEl = document.getElementById('s-theme');
+  if (themeEl) {
+    themeEl.style.backgroundColor = p.input;
+    themeEl.style.color           = p.text;
+    themeEl.style.borderColor     = p.inputBdr;
+  }
 }
 
 function updateStats() {
@@ -2178,15 +2216,24 @@ async function browseExportPath() {
   }
 }
 
-// Global toggle click handler — update visual without applyTheme overhead
+// Global toggle click handler — update visual immediately
 document.addEventListener('change', function(e) {
   if (e.target.type !== 'checkbox' || !e.target.closest('.toggle')) return;
-  const sl   = e.target.nextElementSibling;
+  const sl  = e.target.nextElementSibling;
   if (!sl) return;
-  // Reset inline styles — let CSS :checked rule take over
-  sl.style.removeProperty('background');
-  sl.style.removeProperty('background-color');
-  sl.style.removeProperty('border-color');
+  const t   = document.documentElement.getAttribute('data-theme') || 'dark';
+  const LIGHT = ['hofeher','hofehér','light'];
+  const dark  = !LIGHT.includes(t);
+  if (e.target.checked) {
+    const accentMap = { dark:'#7B5CF0', hofeher:'#6B46EF', tengerke:'#1E6FCC',
+      erdo:'#18794E', borostyan:'#C87820', karbon:'#555558', rozsa:'#B82860' };
+    const accent = accentMap[t] || '#7B5CF0';
+    sl.style.background  = accent;
+    sl.style.borderColor = accent;
+  } else {
+    sl.style.background  = dark ? 'rgba(255,255,255,.18)' : '#C4C9E0';
+    sl.style.borderColor = dark ? 'rgba(255,255,255,.2)'  : '#A8AECE';
+  }
 });
 
 function openSettings() {
