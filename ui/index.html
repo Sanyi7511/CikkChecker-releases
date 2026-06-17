@@ -1830,6 +1830,13 @@ function applyTheme(theme) {
     el.style.borderColor = p.inputBdr;
   });
 
+  // ── Version number — visible in all themes ───────────────────────────
+  const verEl = document.getElementById('app-version');
+  if (verEl) {
+    verEl.style.color   = p.text2;
+    verEl.style.opacity = '1';
+  }
+
   // ── Update theme toggle button visual in settings select ──────────────
   const themeEl = document.getElementById('s-theme');
   if (themeEl) {
