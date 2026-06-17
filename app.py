@@ -973,7 +973,15 @@ class Api:
                                             if val and 2 < len(val) <= 40:
                                                 page_codes.append(val)
 
-                        # Strategy 4: regex fallback
+                        # Strategy 4: automotive part regex
+                        if not page_codes:
+                            text = soup.get_text(" ")
+                            for pat in AUTO_PART_PATTERNS:
+                                matches = pat.findall(text)
+                                if matches:
+                                    page_codes.extend(matches[:500])
+                                    break
+                        # Strategy 5: general regex fallback
                         if not page_codes:
                             text = soup.get_text(" ")
                             page_codes = [m for m in CODE_PATTERN.findall(text)
