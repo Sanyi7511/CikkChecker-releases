@@ -95,9 +95,9 @@ input::placeholder { color:var(--text3); }
 /* Hardcoded accent — no CSS var needed, works in pywebview */
 .toggle input:checked+.toggle-sl { background:#7B5CF0 !important;border-color:#7B5CF0 !important; }
 .toggle input:checked+.toggle-sl::before { transform:translateX(16px); }
-[data-theme="light"] .toggle-sl { background:#C4C9E0;border:1px solid #A8AECE; }
-[data-theme="light"] .toggle-sl::before { background:white;box-shadow:0 1px 4px rgba(0,0,50,.25); }
-[data-theme="light"] .toggle input:checked+.toggle-sl { background:#6B46EF !important;border-color:#6B46EF !important; }
+[data-theme="light"] .toggle-sl, [data-theme="hofehér"] .toggle-sl { background:#C4C9E0;border:1px solid #A8AECE; }
+[data-theme="light"] .toggle-sl::before, [data-theme="hofehér"] .toggle-sl::before { background:white;box-shadow:0 1px 4px rgba(0,0,50,.25); }
+[data-theme="light"] .toggle input:checked+.toggle-sl, [data-theme="hofehér"] .toggle input:checked+.toggle-sl { background:#6B46EF !important;border-color:#6B46EF !important; }
 
 /* Drop zone */
 #drop-zone { border:1.5px dashed var(--border2);border-radius:9px;
@@ -126,8 +126,8 @@ select { width:100%;padding:6px 10px;font-size:11px;
   background-repeat:no-repeat;background-position:right 8px center; }
 select:focus { border-color:var(--accent); }
 select option { background:var(--select-opt); color:var(--text); }
-[data-theme="light"] select option { background:#EEF0FF; color:#1E1240; }
-[data-theme="light"] select { background-color:#fff; color:#1E1240; }
+[data-theme="light"] select option, [data-theme="hofehér"] select option { background:#EEF0FF; color:#1E1240; }
+[data-theme="light"] select, [data-theme="hofehér"] select { background-color:#fff; color:#1E1240; }
 
 /* Sidebar action buttons */
 .btn-start { width:100%;padding:11px;border-radius:9px;font-size:13px;font-weight:700;
@@ -285,10 +285,10 @@ select option { background:var(--select-opt); color:var(--text); }
 .s-label { font-size:12px;color:#E8EBF0;font-weight:500;display:block; }
 .s-desc  { font-size:10px;color:#9BA3B4;margin-top:2px; }
 .s-row > div:first-child { flex:1;min-width:0;margin-right:12px; }
-[data-theme="light"] .s-label { color:#1E1240; }
-[data-theme="light"] .s-desc  { color:#4B3F80; }
+[data-theme="light"] .s-label, [data-theme="hofehér"] .s-label { color:#1E1240; }
+[data-theme="light"] .s-desc, [data-theme="hofehér"] .s-desc { color:#4B3F80; }
 .modal-body { color:#E8EBF0; }
-[data-theme="light"] .modal-body { color:#1E1240; }
+[data-theme="light"] .modal-body, [data-theme="hofehér"] .modal-body { color:#1E1240; }
 .s-select { width:130px;font-size:11px; }
 
 /* Start modal */
@@ -492,6 +492,74 @@ select option { background:var(--select-opt); color:var(--text); }
   .print-title{font-size:18px;font-weight:700;margin-bottom:10px;color:#1a0f3c;}
   .print-meta{font-size:11px;color:#666;margin-bottom:14px;}
 }
+
+  /* ═══ SZÍNES TÉMÁK ══════════════════════════════════════════════════════ */
+
+  [data-theme="tengerkek"], [data-theme="tengerke"] {
+    --grad1:#040D1A; --grad2:#081B35; --accent:#1E6FCC; --accent2:#1558A8;
+    --pink:#0EA5E9; --green:#22C55E; --green2:#16A34A; --green-bg:#0A2016;
+    --red:#EF4444; --red2:#C53030; --red-bg:#200A0A;
+    --amber:#F5A623; --amber2:#D97706; --amber-bg:#201508;
+    --glass:rgba(14,50,120,0.25); --glass2:rgba(14,50,120,0.4);
+    --border:rgba(30,111,204,0.2); --border2:rgba(30,111,204,0.35);
+    --text:#D0E8FF; --text2:#7AABDD; --text3:#3A6090;
+    --sidebar:rgba(4,13,26,0.9); --card:#0A1E38; --card2:#0D2444;
+    --input:rgba(0,20,60,0.5);
+    --modal-bg:rgba(8,24,50,0.98); --modal-bg2:rgba(4,14,30,0.98);
+    --select-opt:#0A1E38; --tip-bg:#0A1E38;
+  }
+  [data-theme="erdo"] {
+    --grad1:#050E08; --grad2:#0A1C10; --accent:#18794E; --accent2:#0F5436;
+    --pink:#22C55E; --green:#3CCF6E; --green2:#22A850; --green-bg:#061A0C;
+    --red:#EF4444; --red2:#C53030; --red-bg:#200A0A;
+    --amber:#F5A623; --amber2:#D97706; --amber-bg:#201508;
+    --glass:rgba(12,50,24,0.3); --glass2:rgba(12,50,24,0.5);
+    --border:rgba(24,121,78,0.2); --border2:rgba(24,121,78,0.35);
+    --text:#C8F0D8; --text2:#6AB888; --text3:#2A6040;
+    --sidebar:rgba(5,14,8,0.9); --card:#0A1C10; --card2:#0E2416;
+    --input:rgba(0,30,12,0.5);
+    --modal-bg:rgba(8,24,14,0.98); --modal-bg2:rgba(5,14,8,0.98);
+    --select-opt:#0A1C10; --tip-bg:#0A1C10;
+  }
+  [data-theme="borostyan"] {
+    --grad1:#120A00; --grad2:#1E1000; --accent:#C87820; --accent2:#A06010;
+    --pink:#F5A623; --green:#22C55E; --green2:#16A34A; --green-bg:#0A2016;
+    --red:#EF4444; --red2:#C53030; --red-bg:#200A0A;
+    --amber:#F5A623; --amber2:#D97706; --amber-bg:#201508;
+    --glass:rgba(120,70,0,0.2); --glass2:rgba(120,70,0,0.35);
+    --border:rgba(200,120,32,0.2); --border2:rgba(200,120,32,0.35);
+    --text:#FFE0A0; --text2:#C89040; --text3:#7A5018;
+    --sidebar:rgba(18,10,0,0.9); --card:#1E1200; --card2:#261800;
+    --input:rgba(40,20,0,0.5);
+    --modal-bg:rgba(24,14,0,0.98); --modal-bg2:rgba(14,8,0,0.98);
+    --select-opt:#1E1200; --tip-bg:#1E1200;
+  }
+  [data-theme="karbon"] {
+    --grad1:#0E0E0F; --grad2:#161618; --accent:#444448; --accent2:#333336;
+    --pink:#AAFFA0; --green:#AAFFA0; --green2:#88DD80; --green-bg:#0A1A08;
+    --red:#FF6B6B; --red2:#E05050; --red-bg:#1A0808;
+    --amber:#F5C060; --amber2:#D99A30; --amber-bg:#1A1208;
+    --glass:rgba(255,255,255,0.04); --glass2:rgba(255,255,255,0.08);
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+    --text:#E4E4E4; --text2:#888888; --text3:#484848;
+    --sidebar:rgba(14,14,15,0.95); --card:#1A1A1C; --card2:#202022;
+    --input:rgba(0,0,0,0.5);
+    --modal-bg:rgba(18,18,20,0.98); --modal-bg2:rgba(12,12,14,0.98);
+    --select-opt:#1A1A1C; --tip-bg:#1A1A1C;
+  }
+  [data-theme="rozsa"] {
+    --grad1:#140610; --grad2:#200A18; --accent:#B82860; --accent2:#901840;
+    --pink:#FF6090; --green:#22C55E; --green2:#16A34A; --green-bg:#0A1A0E;
+    --red:#FF9040; --red2:#E07020; --red-bg:#1A1008;
+    --amber:#F5A623; --amber2:#D97706; --amber-bg:#201508;
+    --glass:rgba(180,40,80,0.12); --glass2:rgba(180,40,80,0.22);
+    --border:rgba(184,40,96,0.2); --border2:rgba(184,40,96,0.35);
+    --text:#FFD0E0; --text2:#C06080; --text3:#802040;
+    --sidebar:rgba(20,6,16,0.9); --card:#200A18; --card2:#280E20;
+    --input:rgba(40,0,20,0.5);
+    --modal-bg:rgba(24,8,18,0.98); --modal-bg2:rgba(14,4,10,0.98);
+    --select-opt:#200A18; --tip-bg:#200A18;
+  }
 </style>
 </head>
 <body>
@@ -809,8 +877,14 @@ select option { background:var(--select-opt); color:var(--text); }
         <div class="s-row">
           <div><div class="s-label" data-i18n="lbl_theme">Téma</div></div>
           <select id="s-theme" class="s-select" onchange="applyTheme(this.value);autoSaveSettings()">
-  <option value="dark" data-i18n="opt_dark">🌙 Sötét</option>
-  <option value="light" data-i18n="opt_light">☀️ Világos</option>
+  <option value="dark">🌌 Lila éj</option>
+  <option value="hofeher">☀️ Hófehér</option>
+  <option value="tengerke">🌊 Tengerkék</option>
+  <option value="erdo">🌿 Erdő</option>
+  <option value="borostyan">🟠 Borostyán</option>
+  <option value="karbon">⬛ Karbon</option>
+  <option value="rozsa">🌸 Rózsa</option>
+  <option value="rendszer">🖥 Rendszer (auto)</option>
 </select>
         </div>
         <div class="s-row">
@@ -1493,9 +1567,19 @@ const state = {
 
 // ══ INIT ══════════════════════════════════════════════════════════════════
 window.addEventListener('load', async () => {
-  applyTheme('dark');
-  toggleLogin();
-  try { const cfg = await py('get_config'); if (cfg) applyConfig(cfg); } catch(e){}
+  // Load config first — apply saved theme instead of always starting dark
+  try {
+    const cfg = await py('get_config');
+    if (cfg) {
+      applyConfig(cfg);
+    } else {
+      applyTheme('dark');
+      toggleLogin();
+    }
+  } catch(e) {
+    applyTheme('dark');
+    toggleLogin();
+  }
   setTimeout(() => py('check_update').catch(()=>{}), 3000);
 });
 
@@ -1617,10 +1701,16 @@ function toggleLogin() {
 }
 
 function applyTheme(theme) {
-  const t = theme || 'dark';
+  let t = theme || 'dark';
+  // "rendszer" follows OS preference
+  if (t === 'rendszer') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    t = prefersDark ? 'dark' : 'hofeher';
+  }
   document.documentElement.setAttribute('data-theme', t);
 
-  const dark = t !== 'light';
+  const LIGHT_THEMES = ['hofehér','hofeher','light'];
+  const dark = !LIGHT_THEMES.includes(t);
 
   // Modal backgrounds — CSS vars sometimes don't re-render in pywebview
   const modalBg   = dark ? 'linear-gradient(145deg,rgba(26,15,60,.98),rgba(13,8,33,.98))'
@@ -1981,6 +2071,12 @@ function resolveUnknown(action) {
 
 
 // ══ SETTINGS ══════════════════════════════════════════════════════════════
+// OS theme change listener for "rendszer" mode
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  const current = document.getElementById('s-theme')?.value;
+  if (current === 'rendszer') applyTheme('rendszer');
+});
+
 // Auto-save settings on every change — saves everything
 async function autoSaveSettings() {
   const g = id => document.getElementById(id);
@@ -2108,7 +2204,11 @@ function applyConfig(cfg) {
     const el=document.getElementById(id); if(!el||val===undefined||val===null) return;
     if(el.type==='checkbox') el.checked=Boolean(val); else el.value=val;
   }
-  if(cfg.theme){applyTheme(cfg.theme);set('s-theme',cfg.theme);}
+  if (cfg.theme) {
+    const themeEl = document.getElementById('s-theme');
+    if (themeEl) themeEl.value = cfg.theme;
+    applyTheme(cfg.theme);
+  }
   set('sleep',cfg.sleep_seconds); set('save-every',cfg.save_every);
   set('sort-order',cfg.sort_order);
   set('s-sleep',cfg.sleep_seconds); set('s-save-every',cfg.save_every);

@@ -26,16 +26,33 @@ UPDATE_ASSET = "CikkCheckerSetup.exe"
 BINARY_NAME  = "checker_core.exe" if sys.platform == "win32" else "checker_core"
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 BINARY_PATH  = os.path.join(BASE_DIR, BINARY_NAME)
-CONFIG_PATH  = os.path.join(BASE_DIR, "config.json")
+# Config in %APPDATA%\CikkChecker\ — always writable, survives reinstalls
+_APP_DATA    = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "CikkChecker")
+os.makedirs(_APP_DATA, exist_ok=True)
+CONFIG_PATH  = os.path.join(_APP_DATA, "config.json")
 UI_PATH      = os.path.join(BASE_DIR, "ui", "index.html")
 
 DEFAULT_CONFIG = {
+    # Megjelenés
     "theme": "dark", "language": "hu",
+    # Frissítések
     "auto_update": True, "update_interval": "on_start",
+    # Futtatás
     "sleep_seconds": 0.8, "save_every": 100,
     "sort_order": "abc", "show_price": True,
+    # Duplikátumok
     "auto_rm_dup": False, "dont_ask_dup": False, "save_dup_txt": True,
-    "last_url": "", "last_xlsx": "", "last_txt": "",
+    # Értesítések & export
+    "notify_on_done": True,
+    "auto_export_csv": False, "auto_export_excel": False, "export_path": "",
+    "auto_clear": False,
+    # Kapcsolat (utolsó használt)
+    "last_url": "", "last_username": "", "last_login_req": False,
+    "last_txt": "", "last_txt_type": "txt",
+    # Több weboldal
+    "extra_urls": "",
+    # Ütemező
+    "sched_enabled": False, "sched_time": "08:00", "sched_days": [1,2,3,4,5],
 }
 
 def load_config():
@@ -532,10 +549,8 @@ class Api:
         current = _v(APP_VERSION)
         remote  = _v(latest)
 
-        self._js(f"onLog('[--] Jelenlegi verzió: {APP_VERSION} | GitHub: {latest}')")
 
         if not latest or remote <= current:
-            self._js("onLog('[--] Nincs újabb verzió.')")
             return
 
         # Find installer asset — name includes version e.g. CikkCheckerSetup_3.1.0.exe
@@ -1273,10 +1288,7 @@ class Api:
 
     # ── History ──────────────────────────────────────────────────────────
     def _history_path(self):
-        hist_dir = os.path.join(os.path.expanduser("~"), "AppData", "Local",
-                                "CikkChecker") if sys.platform=="win32" else                    os.path.join(os.path.expanduser("~"), ".cikkchecker")
-        os.makedirs(hist_dir, exist_ok=True)
-        return os.path.join(hist_dir, "history.json")
+        return os.path.join(_APP_DATA, "history.json")
 
     def get_history(self):
         try:
