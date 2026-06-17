@@ -515,6 +515,35 @@ select option { background:var(--select-opt); color:var(--text); }
     <div class="sb-gear" onclick="openSettings()" title="Beállítások">⚙</div>
   </div>
 
+  <!-- Update notification (shown when new version available) -->
+  <div id="sb-update-box" style="display:none;background:rgba(123,92,240,.12);
+    border:1px solid rgba(123,92,240,.35);border-radius:10px;padding:10px 12px">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+      <span style="font-size:14px">🚀</span>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text)">Új verzió elérhető</div>
+        <div id="sb-update-ver" style="font-size:9px;color:var(--text3)"></div>
+      </div>
+    </div>
+    <div id="sb-upd-progress" style="display:none;margin-bottom:6px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:3px" id="sb-upd-status">Letöltés...</div>
+      <div style="height:3px;background:var(--glass);border-radius:2px;overflow:hidden">
+        <div id="sb-upd-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--pink));border-radius:2px;transition:width .3s"></div>
+      </div>
+    </div>
+    <div id="sb-upd-btns" style="display:flex;gap:5px">
+      <button onclick="doUpdate()" style="flex:2;padding:6px;border-radius:7px;font-size:11px;
+        font-weight:600;cursor:pointer;border:none;
+        background:linear-gradient(135deg,var(--accent),#5B21B6);color:#fff">
+        ⬇ Frissítés
+      </button>
+      <button onclick="dismissUpdate()" style="flex:1;padding:6px;border-radius:7px;font-size:11px;
+        cursor:pointer;border:1px solid var(--border);background:var(--glass);color:var(--text3)">
+        Később
+      </button>
+    </div>
+  </div>
+
   <!-- Connection -->
   <div class="sb-sec" data-i18n="s_connection">Kapcsolat</div>
   <div class="sb-card">
@@ -811,10 +840,10 @@ select option { background:var(--select-opt); color:var(--text); }
             <option value="never" data-i18n="opt_never">Soha</option>
           </select>
         </div>
-        <div class="s-row" id="manual-update-row" style="display:none">
+        <div class="s-row" id="manual-update-row">
           <div style="display:flex;align-items:center;gap:5px">
-            <div class="s-label" data-i18n="lbl_manual_update">Kézi frissítés keresése</div>
-            <span class="tip" data-tip="Az auto keresés ki van kapcsolva.">?</span>
+            <div class="s-label" data-i18n="lbl_manual_update">Frissítés keresése most</div>
+            <span class="tip" data-tip="Manuálisan ellenőrzi, hogy elérhető-e&#10;újabb verzió a GitHubról.">?</span>
           </div>
           <button class="btn-sec" onclick="checkUpdate()" style="width:auto;padding:5px 12px;font-size:11px">🔄 Keresés</button>
         </div>
@@ -868,9 +897,7 @@ select option { background:var(--select-opt); color:var(--text); }
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:flex-end">
-      <button class="btn-modal-save" onclick="closeSettings()">Bezárás</button>
-    </div>
+
   </div>
 </div>
 
@@ -1521,15 +1548,33 @@ function onDone() {
 }
 function onUpdateAvailable(version, asset) {
   state.updateVersion = version; state.updateAsset = asset;
+
+  // Sidebar update box
+  const box = document.getElementById('sb-update-box');
+  const ver = document.getElementById('sb-update-ver');
+  if (box) box.style.display = 'block';
+  if (ver) ver.textContent = `v${version} elérhető`;
+
+  // Also update main banner (keep it hidden until user triggers)
   document.getElementById('update-version').textContent = `Új verzió elérhető: v${version}`;
   document.getElementById('update-icon').textContent = '🚀';
   document.getElementById('upd-progress-wrap').style.display = 'none';
   document.getElementById('upd-now-btn').style.display = 'block';
   document.getElementById('upd-dismiss-btn').style.display = 'block';
-  document.getElementById('update-banner').classList.add('show');
+  // Don't auto-show banner — sidebar box is enough
   onLog(`[!!] Új verzió: v${version}`);
 }
 function onUpdateDownloading(version) {
+  // Sidebar progress
+  const prog = document.getElementById('sb-upd-progress');
+  const btns = document.getElementById('sb-upd-btns');
+  const stat = document.getElementById('sb-upd-status');
+  if (prog) prog.style.display = 'block';
+  if (btns) btns.style.display = 'none';
+  if (stat) stat.textContent = `v${version} letöltése...`;
+  const ver = document.getElementById('sb-update-ver');
+  if (ver) ver.textContent = `v${version} letöltése...`;
+  // Banner
   document.getElementById('update-banner').classList.add('show');
   document.getElementById('update-version').textContent = `v${version} letöltése...`;
   document.getElementById('update-icon').textContent = '⬇';
@@ -1540,10 +1585,16 @@ function onUpdateDownloading(version) {
 function onUpdateProgress(pct) {
   document.getElementById('upd-progress-bar').style.width = pct + '%';
   document.getElementById('upd-pct').textContent = pct + '%';
+  const bar = document.getElementById('sb-upd-bar');
+  if (bar) bar.style.width = pct + '%';
+  const stat = document.getElementById('sb-upd-status');
+  if (stat) stat.textContent = `Letöltés: ${pct}%`;
 }
 function onUpdateReady() {
-  document.getElementById('update-version').textContent = 'Telepítés folyamatban... Az app automatikusan újraindul.';
+  document.getElementById('update-version').textContent = 'Telepítés... Az app automatikusan újraindul.';
   document.getElementById('update-icon').textContent = '🔄';
+  const stat = document.getElementById('sb-upd-status');
+  if (stat) stat.textContent = 'Telepítés... Újraindulás hamarosan';
 }
 function onUpdateFailed() {
   document.getElementById('update-version').textContent = 'Frissítés sikertelen';
@@ -1681,6 +1732,13 @@ function showToast(msg, icon='✓') {
 function clearLog() { document.getElementById('log-body').innerHTML=''; }
 function clearResults() { document.getElementById('table-body').innerHTML=''; resetStats(); }
 function dismissBanner() { document.getElementById('update-banner').classList.remove('show'); }
+function dismissUpdate() {
+  // Hide sidebar box for this session
+  const box = document.getElementById('sb-update-box');
+  if (box) box.style.display = 'none';
+  dismissBanner();
+  onLog('[--] Frissítés elhalasztva');
+}
 async function doUpdate() {
   document.getElementById('upd-now-btn').style.display='none';
   document.getElementById('upd-dismiss-btn').style.display='none';
@@ -1923,34 +1981,70 @@ function resolveUnknown(action) {
 
 
 // ══ SETTINGS ══════════════════════════════════════════════════════════════
-// Auto-save settings on every change
+// Auto-save settings on every change — saves everything
 async function autoSaveSettings() {
+  const g = id => document.getElementById(id);
   const cfg = {
-    theme:           document.getElementById('s-theme')?.value || 'dark',
-    language:        document.getElementById('s-lang')?.value  || 'hu',
-    auto_update:     document.getElementById('s-auto-update')?.checked ?? true,
-    update_interval: document.getElementById('s-upd-interval')?.value || 'on_start',
-    sleep_seconds:   parseFloat(document.getElementById('s-sleep')?.value) || 0.8,
-    save_every:      parseInt(document.getElementById('s-save-every')?.value) || 100,
-    show_price:      document.getElementById('s-show-price')?.checked ?? true,
-    auto_rm_dup:     document.getElementById('s-auto-rm')?.checked ?? false,
-    dont_ask_dup:    document.getElementById('s-dont-ask')?.checked ?? false,
-    save_dup_txt:    document.getElementById('s-save-dup')?.checked ?? true,
-    // Persist last used values
-    last_url:        document.getElementById('url')?.value || '',
-    last_sleep:      document.getElementById('sleep')?.value || '0.8',
-    last_save_every: document.getElementById('save-every')?.value || '100',
+    // Megjelenés
+    theme:            g('s-theme')?.value          || 'dark',
+    language:         g('s-lang')?.value           || 'hu',
+    // Frissítések
+    auto_update:      g('s-auto-update')?.checked  ?? true,
+    update_interval:  g('s-upd-interval')?.value   || 'on_start',
+    // Futtatás
+    sleep_seconds:    parseFloat(g('s-sleep')?.value)    || 0.8,
+    save_every:       parseInt(g('s-save-every')?.value)  || 100,
+    show_price:       g('s-show-price')?.checked   ?? true,
+    sort_order:       g('sort-order')?.value       || 'abc',
+    // Duplikátumok
+    auto_rm_dup:      g('s-auto-rm')?.checked      ?? false,
+    dont_ask_dup:     g('s-dont-ask')?.checked     ?? false,
+    save_dup_txt:     g('s-save-dup')?.checked     ?? true,
+    // Értesítések
+    notify_on_done:   g('s-notify')?.checked       ?? true,
+    // Kapcsolat
+    last_url:         g('url')?.value              || '',
+    last_username:    g('username')?.value         || '',
+    last_login_req:   g('login-required')?.checked ?? false,
+    // Több weboldal
+    extra_urls:       g('extra-urls')?.value       || '',
+    // Ütemező
+    sched_enabled:    g('sched-enabled')?.checked  ?? false,
+    sched_time:       g('sched-time')?.value       || '08:00',
+    sched_days:       getActiveDays(),
+    // Export
+    auto_export_csv:  g('s-auto-csv')?.checked     ?? false,
+    auto_export_excel:g('s-auto-excel')?.checked   ?? false,
+    export_path:      g('s-export-path')?.value    || '',
+    // Eredmények
+    auto_clear:       g('s-auto-clear')?.checked   ?? false,
   };
   // Sync hidden inputs
-  document.getElementById('sleep').value       = cfg.sleep_seconds;
-  document.getElementById('save-every').value  = cfg.save_every;
-  document.getElementById('auto-rm-val').value = cfg.auto_rm_dup ? 'true' : 'false';
-  document.getElementById('save-dup-val').value= cfg.save_dup_txt ? 'true' : 'false';
+  if (g('sleep'))        g('sleep').value        = cfg.sleep_seconds;
+  if (g('save-every'))   g('save-every').value   = cfg.save_every;
+  if (g('sort-order'))   g('sort-order').value   = cfg.sort_order;
+  if (g('auto-rm-val'))  g('auto-rm-val').value  = cfg.auto_rm_dup  ? 'true' : 'false';
+  if (g('save-dup-val')) g('save-dup-val').value = cfg.save_dup_txt ? 'true' : 'false';
   await py('save_config', cfg).catch(() => {});
 }
 
 // s-sleep and s-save-every save on blur/enter
 function onSettingInputBlur() { autoSaveSettings(); }
+
+function toggleExportPath() {
+  const show = document.getElementById('s-auto-csv')?.checked ||
+               document.getElementById('s-auto-excel')?.checked;
+  const row  = document.getElementById('s-export-path-row');
+  if (row) row.style.display = show ? 'flex' : 'none';
+}
+
+async function browseExportPath() {
+  const path = await py('browse_folder');
+  if (path) {
+    const el = document.getElementById('s-export-path');
+    if (el) { el.value = path; autoSaveSettings(); }
+  }
+}
 
 // Global toggle click handler — update visual without applyTheme overhead
 document.addEventListener('change', function(e) {
@@ -1976,10 +2070,10 @@ function closeSettings() { document.getElementById('settings-overlay').classList
 function closeSettingsIfBg(e) { if(e.target===document.getElementById('settings-overlay')) closeSettings(); }
 
 function toggleManualUpdateBtn() {
+  // Manual check is always visible; only interval row toggles
   const auto = document.getElementById('s-auto-update').checked;
-  const mr=document.getElementById('manual-update-row'), ir=document.getElementById('upd-interval-row');
-  if(mr) mr.style.display = auto?'none':'flex';
-  if(ir) ir.style.display = auto?'flex':'none';
+  const ir = document.getElementById('upd-interval-row');
+  if (ir) ir.style.display = auto ? 'flex' : 'none';
 }
 
 async function saveSettings() {
@@ -2031,27 +2125,62 @@ function applyConfig(cfg) {
     if(el){el.textContent='v'+cfg.app_version;el.title='CikkChecker v'+cfg.app_version;}
   }
   if (cfg.language) applyLanguage(cfg.language);
-  // Restore scheduler state
-  if (cfg.scheduler) {
-    const sched = cfg.scheduler;
-    const schedEl = document.getElementById('sched-enabled');
-    if (schedEl) {
-      schedEl.checked = Boolean(sched.enabled);
-      const schedCfg = document.getElementById('sched-config');
-      if (schedCfg) schedCfg.style.display = sched.enabled ? 'flex' : 'none';
-      if (sched.time) {
-        const timeEl = document.getElementById('sched-time');
-        if (timeEl) timeEl.value = sched.time;
-      }
-      if (sched.days && Array.isArray(sched.days)) {
-        document.querySelectorAll('.day-btn').forEach(btn => {
-          const day = parseInt(btn.getAttribute('data-day'));
-          btn.classList.toggle('active', sched.days.includes(day));
-        });
-      }
-      if (sched.enabled) startScheduler();
-    }
+  // ── Kapcsolat ──────────────────────────────────────────────────────────
+  if (cfg.last_url) {
+    const urlEl = document.getElementById('url');
+    if (urlEl) urlEl.value = cfg.last_url;
   }
+  if (cfg.last_username) {
+    const unEl = document.getElementById('username');
+    if (unEl) unEl.value = cfg.last_username;
+  }
+  if (cfg.last_login_req !== undefined) {
+    const lrEl = document.getElementById('login-required');
+    if (lrEl) lrEl.checked = Boolean(cfg.last_login_req);
+  }
+
+  // ── Több weboldal ───────────────────────────────────────────────────────
+  if (cfg.extra_urls) {
+    const euEl = document.getElementById('extra-urls');
+    if (euEl) euEl.value = cfg.extra_urls;
+  }
+
+  // ── Ütemező ─────────────────────────────────────────────────────────────
+  const schedSrc = cfg.scheduler || cfg;
+  const schedEnabled = schedSrc.sched_enabled || schedSrc.enabled || false;
+  const schedTime    = schedSrc.sched_time    || schedSrc.time    || '08:00';
+  const schedDays    = schedSrc.sched_days    || schedSrc.days    || [1,2,3,4,5];
+  const schedEl  = document.getElementById('sched-enabled');
+  const schedCfg = document.getElementById('sched-config');
+  const timeEl   = document.getElementById('sched-time');
+  if (schedEl) {
+    schedEl.checked = Boolean(schedEnabled);
+    if (schedCfg) schedCfg.style.display = schedEnabled ? 'flex' : 'none';
+  }
+  if (timeEl && schedTime) timeEl.value = schedTime;
+  if (Array.isArray(schedDays)) {
+    document.querySelectorAll('.day-btn').forEach(btn => {
+      btn.classList.toggle('active', schedDays.includes(parseInt(btn.getAttribute('data-day'))));
+    });
+  }
+  if (schedEnabled) startScheduler();
+
+  // ── Export & egyéb beállítások ──────────────────────────────────────────
+  const sn = id => document.getElementById(id);
+  if (cfg.auto_export_csv   !== undefined && sn('s-auto-csv'))
+    sn('s-auto-csv').checked    = Boolean(cfg.auto_export_csv);
+  if (cfg.auto_export_excel !== undefined && sn('s-auto-excel'))
+    sn('s-auto-excel').checked  = Boolean(cfg.auto_export_excel);
+  if (cfg.auto_clear        !== undefined && sn('s-auto-clear'))
+    sn('s-auto-clear').checked  = Boolean(cfg.auto_clear);
+  if (cfg.notify_on_done    !== undefined && sn('s-notify'))
+    sn('s-notify').checked      = Boolean(cfg.notify_on_done);
+  if (cfg.export_path && sn('s-export-path'))
+    sn('s-export-path').value   = cfg.export_path;
+  if (cfg.sort_order && sn('sort-order'))
+    sn('sort-order').value      = cfg.sort_order;
+
+  if (cfg.language) applyLanguage(cfg.language);
   toggleLogin(); toggleManualUpdateBtn();
 }
 

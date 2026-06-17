@@ -232,6 +232,11 @@ class Api:
         """Legacy compat — redirect to browse_file."""
         return self.browse_file("txt")
 
+    def browse_folder(self):
+        """Open folder browser dialog."""
+        path = self._tk_dialog(lambda r: filedialog.askdirectory(parent=r, title="Export mappa"))
+        return path or ""
+
     def export_excel_dialog(self, data):
         """Called from JS with table row data — shows save dialog and exports Excel."""
         path = self._tk_dialog(lambda r: filedialog.asksaveasfilename(
@@ -1295,6 +1300,9 @@ class Api:
 
     # ── Windows notification ──────────────────────────────────────────────
     def notify(self, message: str, subtitle: str = ""):
+        if not self._cfg.get("notify_on_done", True):
+            return True
+
         if sys.platform != "win32":
             return True
         try:
