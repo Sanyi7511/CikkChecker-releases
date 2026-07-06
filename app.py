@@ -26,7 +26,7 @@ UPDATE_ASSET = "CikkCheckerSetup.exe"
 
 # Webshop funkció aktiváló kódja — csak hash tárolva, a kód itt van hardcode-olva
 # VÁLTOZTASD MEG a publikus kiadás előtt!
-WEBSHOP_SECRET = "BBEE4A7C6ADA21D5"  # <-- IDE ÍRD A SAJÁT KÓDODAT
+WEBSHOP_SECRET = "Olaszauto_2026"  # <-- IDE ÍRD A SAJÁT KÓDODAT
 _WEBSHOP_SECRET_HASH = hashlib.sha256(WEBSHOP_SECRET.encode()).hexdigest()
 BINARY_NAME  = "checker_core.exe" if sys.platform == "win32" else "checker_core"
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
