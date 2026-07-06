@@ -903,38 +903,6 @@ select option { background:var(--select-opt); color:var(--text); }
       </div>
     </div>
 
-      <div style="border-top:1px solid rgba(239,68,68,.2);margin-top:8px;padding-top:12px">
-        <div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">Veszélyes zóna</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;
-          background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);
-          border-radius:8px;padding:10px 14px">
-          <div>
-            <div style="font-size:12px;font-weight:500;color:var(--red)">Alkalmazás eltávolítása</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">Az app és a gyorsítótár törlése</div>
-          </div>
-          <button onclick="confirmUninstall()"
-            style="padding:6px 14px;border-radius:7px;font-size:11px;cursor:pointer;
-            border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);
-            color:var(--red);white-space:nowrap;flex-shrink:0">
-            Eltávolítás
-          </button>
-        </div>
-      </div>
-
-    <!-- Aktiválás — rejtett funkció -->
-    <div id="ws-activate-section" style="display:none;flex-direction:column;gap:8px;
-      background:rgba(123,92,240,.06);border:1px solid rgba(123,92,240,.2);
-      border-radius:9px;padding:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--accent)">🔑 Funkció aktiválás</div>
-      <input type="password" id="ws-activate-input" placeholder="Aktiváló kód"
-        style="font-size:13px;letter-spacing:3px"
-        onkeydown="if(event.key==='Enter')wsDoActivate()">
-      <div id="ws-activate-error" style="font-size:10px;color:var(--red);display:none"></div>
-      <button class="btn-modal-save" onclick="wsDoActivate()" style="align-self:flex-end">
-        Aktiválás
-      </button>
-    </div>
-
         <div class="modal-footer" style="gap:8px">
       <button class="btn-modal-cancel2" onclick="closeStartModal()">Mégse</button>
       <button class="btn-modal-start" onclick="confirmStart()">▶  Indítás</button>
@@ -1048,13 +1016,47 @@ select option { background:var(--select-opt); color:var(--text); }
           <label class="toggle"><input type="checkbox" id="s-save-dup" checked><span class="toggle-sl"></span></label>
         </div>
       </div>
-    
+
+      <!-- Veszélyes zóna -->
+      <div style="border-top:1px solid rgba(239,68,68,.2);margin-top:4px;padding-top:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:8px;
+          text-transform:uppercase;letter-spacing:.8px">Veszélyes zóna</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);
+          border-radius:8px;padding:10px 14px">
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--red)">Alkalmazás eltávolítása</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">Az app és a gyorsítótár törlése</div>
+          </div>
+          <button onclick="confirmUninstall()"
+            style="padding:6px 14px;border-radius:7px;font-size:11px;cursor:pointer;
+            border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);
+            color:var(--red);white-space:nowrap;flex-shrink:0">
+            Eltávolítás
+          </button>
+        </div>
+      </div>
+
+      <!-- Aktiválás — rejtett funkció -->
+      <div id="ws-activate-section" style="display:none;flex-direction:column;gap:8px;
+        margin-top:8px;background:rgba(123,92,240,.06);border:1px solid rgba(123,92,240,.2);
+        border-radius:9px;padding:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent)">🔑 Funkció aktiválás</div>
+        <input type="password" id="ws-activate-input" placeholder="Aktiváló kód"
+          style="font-size:13px;letter-spacing:3px"
+          onkeydown="if(event.key==='Enter')wsDoActivate()">
+        <div id="ws-activate-error" style="font-size:10px;color:var(--red);display:none"></div>
+        <button class="btn-modal-save" onclick="wsDoActivate()" style="align-self:flex-end">
+          Aktiválás
+        </button>
+      </div>
+
+    </div><!-- /modal-body -->
     <div class="modal-footer" style="justify-content:space-between;align-items:center">
       <span id="settings-ver-click" style="font-size:9px;color:var(--text3);cursor:default;user-select:none"
         onclick="wsSecretClick()">v<span id="sver"></span></span>
       <button class="btn-modal-save" onclick="closeSettings()">Bezárás</button>
-    </div></div>
-
+    </div>
   </div>
 </div>
 
@@ -1203,13 +1205,7 @@ select option { background:var(--select-opt); color:var(--text); }
 
     </div>
 
-    <div class="modal-footer" style="justify-content:flex-start">
-      <button onclick="confirmUninstall()" style="padding:6px 12px;border-radius:7px;
-        font-size:11px;cursor:pointer;border:1px solid rgba(239,68,68,.3);
-        background:rgba(239,68,68,.08);color:var(--red)">
-        🗑 Alkalmazás eltávolítása
-      </button>
-    </div>
+    <div class="modal-footer" style="justify-content:flex-end">
   </div>
 </div>
 
