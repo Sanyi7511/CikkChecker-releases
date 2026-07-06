@@ -718,6 +718,45 @@ select option { background:var(--select-opt); color:var(--text); }
       style="background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:11px;padding:6px 8px;resize:none;outline:none;width:100%;line-height:1.5"></textarea>
   </div>
 
+  <!-- Webshop ellenőrzés — csak aktiválás után látható -->
+  <div id="ws-section" style="display:none">
+  <div class="sb-sec">🏪 Webshop ellenőrzés</div>
+  <div class="sb-card" id="ws-card">
+    <!-- Zárolt állapot -->
+    <div id="ws-locked-view" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0">
+      <div style="font-size:28px">🔒</div>
+      <div style="font-size:10px;color:var(--text3);text-align:center">
+        A webshop adatok PIN kóddal védve vannak
+      </div>
+      <button class="btn-sec" onclick="wsOpenUnlock()"
+        style="width:100%;margin-top:2px;border-color:rgba(123,92,240,.4);color:var(--accent)">
+        🔑 Feloldás / Beállítás
+      </button>
+    </div>
+    <!-- Feloldott állapot (rejtett) -->
+    <div id="ws-unlocked-view" style="display:none;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+        <div style="font-size:10px;color:var(--green)">🔓 Feloldva</div>
+        <button class="btn-sec" onclick="wsLock()"
+          style="font-size:9px;padding:2px 8px;color:var(--text3)">Zárolás</button>
+      </div>
+      <div class="sb-lbl">Admin URL</div>
+      <input type="text" id="ws-url" value="https://mywebshop.hu/admin" placeholder="Admin URL">
+      <div class="sb-lbl" style="margin-top:4px">Email</div>
+      <input type="text" id="ws-email" placeholder="admin@email.hu" autocomplete="off">
+      <div class="sb-lbl" style="margin-top:4px">Jelszó</div>
+      <input type="password" id="ws-pass" placeholder="Jelszó" autocomplete="off">
+      <button class="btn-sec" onclick="wsSaveCredentials()"
+        style="margin-top:4px;border-color:rgba(34,197,94,.4);color:var(--green)">
+        💾 Mentés
+      </button>
+      <button class="btn-sec" onclick="wsOpenChangePin()"
+        style="font-size:10px;color:var(--text3)">🔧 PIN csere</button>
+    </div>
+  </div>
+
+    </div><!-- /ws-section -->
+
   <!-- Hidden setting values -->
   <input type="hidden" id="sleep" value="0.8">
   <input type="hidden" id="save-every" value="100">
@@ -738,7 +777,13 @@ select option { background:var(--select-opt); color:var(--text); }
       style="border-color:rgba(123,92,240,.4);color:var(--accent2);background:rgba(123,92,240,.08)">
       🔍 Kód kinyerő
     </button>
-    <button class="btn-sec" onclick="openComparator()"
+    <div id="ws-btn-wrapper" style="display:none">
+    <button class="btn-sec" onclick="openWebshopCheck()"
+      style="border-color:rgba(34,197,94,.3);color:var(--green);background:rgba(34,197,94,.06)">
+      🏪 Webshop ellenőrzés
+    </button>
+    </div>
+        <button class="btn-sec" onclick="openComparator()"
       style="border-color:rgba(34,197,94,.3);color:var(--green);background:rgba(34,197,94,.06)">
       ⚖ Fájl összehasonlító
     </button>
@@ -860,7 +905,21 @@ select option { background:var(--select-opt); color:var(--text); }
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="gap:8px">
+    <!-- Aktiválás — rejtett funkció -->
+    <div id="ws-activate-section" style="display:none;flex-direction:column;gap:8px;
+      background:rgba(123,92,240,.06);border:1px solid rgba(123,92,240,.2);
+      border-radius:9px;padding:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent)">🔑 Funkció aktiválás</div>
+      <input type="password" id="ws-activate-input" placeholder="Aktiváló kód"
+        style="font-size:13px;letter-spacing:3px"
+        onkeydown="if(event.key==='Enter')wsDoActivate()">
+      <div id="ws-activate-error" style="font-size:10px;color:var(--red);display:none"></div>
+      <button class="btn-modal-save" onclick="wsDoActivate()" style="align-self:flex-end">
+        Aktiválás
+      </button>
+    </div>
+
+        <div class="modal-footer" style="gap:8px">
       <button class="btn-modal-cancel2" onclick="closeStartModal()">Mégse</button>
       <button class="btn-modal-start" onclick="confirmStart()">▶  Indítás</button>
     </div>
@@ -2918,5 +2977,384 @@ window.addEventListener('load', async () => {
 
 // Recheck button enabled by onDone() after each completed run
 </script>
+
+<!-- ═══════════════ WEBSHOP ELLENŐRZÉS MODAL ══════════════════════════════ -->
+<div class="overlay" id="ws-overlay" onclick="wsCloseIfBg(event)" style="display:none">
+  <div class="modal" style="width:580px;max-height:85vh">
+    <div class="modal-hdr">
+      <span class="modal-title">🏪 Webshop ellenőrzés</span>
+      <button class="modal-close" onclick="closeWsModal()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- Forrás -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">Ellenőrizendő cikkszámok</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button id="ws-src-results" class="btn-sec" onclick="wsSetSource('results')"
+            style="border-color:var(--accent);color:var(--accent);background:rgba(123,92,240,.1)">
+            📊 Jelenlegi eredmények
+          </button>
+          <button id="ws-src-file" class="btn-sec" onclick="wsSetSource('file')">
+            📂 Fájlból
+          </button>
+        </div>
+        <div id="ws-file-row" style="display:none;gap:8px;align-items:center">
+          <input type="text" id="ws-file-path" placeholder="Fájl elérési útja" style="flex:1" readonly>
+          <button class="btn-sec" onclick="wsBrowseFile()" style="white-space:nowrap">Tallózás</button>
+        </div>
+        <div id="ws-codes-info" style="font-size:10px;color:var(--text3);margin-top:6px"></div>
+      </div>
+
+      <!-- Progress -->
+      <div id="ws-progress-box" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">Folyamat</div>
+        <div style="height:6px;background:var(--glass);border-radius:3px;overflow:hidden;margin-bottom:8px">
+          <div id="ws-prog-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .3s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)">
+          <span id="ws-prog-cur">0 / 0</span>
+          <span id="ws-prog-code" style="color:var(--text2)"></span>
+        </div>
+      </div>
+
+      <!-- Eredmények -->
+      <div id="ws-results-box" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Eredmény</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:24px;font-weight:800;color:var(--green)" id="ws-res-van">0</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">Már fent van</div>
+          </div>
+          <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:24px;font-weight:800;color:var(--red)" id="ws-res-nincs">0</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">Még nincs fent</div>
+          </div>
+        </div>
+        <div id="ws-xlsx-info" style="font-size:10px;color:var(--text3);text-align:center"></div>
+      </div>
+
+      <!-- Hiba -->
+      <div id="ws-error-box" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:12px;font-size:12px;color:var(--red)" id="ws-error-msg"></div>
+
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-modal-cancel" onclick="closeWsModal()">Mégse</button>
+      <button id="ws-run-btn" class="btn-modal-save" onclick="runWebshopCheck()">▶ Indítás</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PIN Modal ══════════════════════════════════════════════════════════ -->
+<div class="overlay" id="ws-pin-overlay" style="display:none;z-index:2000">
+  <div class="modal" style="width:360px">
+    <div class="modal-hdr">
+      <span class="modal-title" id="ws-pin-title">🔑 PIN megadása</span>
+      <button class="modal-close" onclick="wsClosePinModal()">✕</button>
+    </div>
+    <div class="modal-body" style="gap:14px;display:flex;flex-direction:column">
+      <div id="ws-pin-desc" style="font-size:12px;color:var(--text2)">
+        Add meg a webshop PIN kódot a hozzáféréshez.
+      </div>
+      <div>
+        <div class="sb-lbl" id="ws-pin-lbl1">PIN kód</div>
+        <input type="password" id="ws-pin-input" placeholder="••••" maxlength="20"
+          style="width:100%;font-size:18px;letter-spacing:6px;text-align:center"
+          onkeydown="if(event.key==='Enter')wsPinConfirm()">
+      </div>
+      <div id="ws-pin-new-row" style="display:none">
+        <div class="sb-lbl">PIN megerősítése</div>
+        <input type="password" id="ws-pin-input2" placeholder="••••" maxlength="20"
+          style="width:100%;font-size:18px;letter-spacing:6px;text-align:center"
+          onkeydown="if(event.key==='Enter')wsPinConfirm()">
+      </div>
+      <div id="ws-pin-old-row" style="display:none">
+        <div class="sb-lbl">Régi PIN</div>
+        <input type="password" id="ws-pin-old" placeholder="••••" maxlength="20"
+          style="width:100%;font-size:18px;letter-spacing:6px;text-align:center">
+      </div>
+      <div id="ws-pin-error" style="color:var(--red);font-size:11px;display:none"></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-modal-cancel" onclick="wsClosePinModal()">Mégse</button>
+      <button class="btn-modal-save" onclick="wsPinConfirm()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Webshop ellenőrzés ─────────────────────────────────────────────────────
+let wsSource = 'results';
+let wsFileCodes = [];
+let wsRunning = false;
+let wsPinMode = 'unlock';   // 'unlock' | 'set' | 'change' | 'run'
+let wsCurrentPin = '';       // megjegyezzük a sessionre
+
+function openWebshopCheck() {
+  document.getElementById('ws-overlay').style.display = 'flex';
+  wsUpdateCodesInfo();
+}
+function closeWsModal() {
+  if (wsRunning) return;
+  document.getElementById('ws-overlay').style.display = 'none';
+}
+function wsCloseIfBg(e) {
+  if (e.target.id === 'ws-overlay') closeWsModal();
+}
+function wsSetSource(src) {
+  wsSource = src;
+  document.getElementById('ws-src-results').style.background = src==='results' ? 'rgba(123,92,240,.1)' : '';
+  document.getElementById('ws-src-results').style.borderColor = src==='results' ? 'var(--accent)' : '';
+  document.getElementById('ws-src-results').style.color = src==='results' ? 'var(--accent)' : '';
+  document.getElementById('ws-src-file').style.background = src==='file' ? 'rgba(123,92,240,.1)' : '';
+  document.getElementById('ws-src-file').style.borderColor = src==='file' ? 'var(--accent)' : '';
+  document.getElementById('ws-src-file').style.color = src==='file' ? 'var(--accent)' : '';
+  document.getElementById('ws-file-row').style.display = src==='file' ? 'flex' : 'none';
+  wsUpdateCodesInfo();
+}
+async function wsBrowseFile() {
+  const path = await pywebview.api.browse_file('txt');
+  if (!path) return;
+  document.getElementById('ws-file-path').value = path;
+  const parsed = await pywebview.api.parse_file(path, 'txt', 0);
+  if (parsed) { wsFileCodes = parsed.codes; wsUpdateCodesInfo(); }
+}
+function wsUpdateCodesInfo() {
+  const el = document.getElementById('ws-codes-info');
+  if (wsSource === 'results') {
+    const rows = window._tableData ? window._tableData.filter(r => r.avail === 'Van' || r.avail === 'Rendelhető') : [];
+    el.textContent = `${rows.length} db "Van"/"Rendelhető" státuszú cikkszám az aktuális eredményekből`;
+  } else {
+    el.textContent = wsFileCodes.length ? `${wsFileCodes.length} cikkszám betöltve` : 'Nincs fájl betöltve';
+  }
+}
+// ── PIN modal vezérlés ──────────────────────────────────────────────────────
+function wsOpenUnlock() {
+  wsPinMode = 'unlock';
+  document.getElementById('ws-pin-title').textContent = '🔑 PIN megadása';
+  document.getElementById('ws-pin-desc').textContent  = 'Add meg a webshop PIN kódot a hozzáféréshez.';
+  document.getElementById('ws-pin-lbl1').textContent  = 'PIN kód';
+  document.getElementById('ws-pin-new-row').style.display = 'none';
+  document.getElementById('ws-pin-old-row').style.display = 'none';
+  document.getElementById('ws-pin-input').value = '';
+  document.getElementById('ws-pin-error').style.display = 'none';
+  wsCheckIfFirstTime();
+}
+async function wsCheckIfFirstTime() {
+  const hasPin = await pywebview.api.ws_has_pin();
+  if (!hasPin) {
+    wsPinMode = 'set';
+    document.getElementById('ws-pin-title').textContent = '🔑 PIN beállítása';
+    document.getElementById('ws-pin-desc').textContent  = 'Állíts be egy PIN kódot a webshop adatok védelméhez (min. 4 karakter).';
+    document.getElementById('ws-pin-lbl1').textContent  = 'Új PIN kód';
+    document.getElementById('ws-pin-new-row').style.display = 'block';
+    document.getElementById('ws-pin-input2').value = '';
+  }
+  document.getElementById('ws-pin-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('ws-pin-input').focus(), 100);
+}
+function wsOpenChangePin() {
+  wsPinMode = 'change';
+  document.getElementById('ws-pin-title').textContent = '🔧 PIN csere';
+  document.getElementById('ws-pin-desc').textContent  = 'Add meg a régi és az új PIN kódot.';
+  document.getElementById('ws-pin-lbl1').textContent  = 'Új PIN kód';
+  document.getElementById('ws-pin-new-row').style.display = 'block';
+  document.getElementById('ws-pin-old-row').style.display = 'block';
+  document.getElementById('ws-pin-input').value  = '';
+  document.getElementById('ws-pin-input2').value = '';
+  document.getElementById('ws-pin-old').value    = '';
+  document.getElementById('ws-pin-error').style.display = 'none';
+  document.getElementById('ws-pin-overlay').style.display = 'flex';
+}
+function wsClosePinModal() {
+  document.getElementById('ws-pin-overlay').style.display = 'none';
+}
+async function wsPinConfirm() {
+  const pin  = document.getElementById('ws-pin-input').value.trim();
+  const pin2 = document.getElementById('ws-pin-input2').value.trim();
+  const errEl = document.getElementById('ws-pin-error');
+  errEl.style.display = 'none';
+
+  if (wsPinMode === 'set') {
+    if (pin.length < 4) { errEl.textContent='Min. 4 karakter!'; errEl.style.display='block'; return; }
+    if (pin !== pin2)   { errEl.textContent='A két PIN nem egyezik!'; errEl.style.display='block'; return; }
+    const r = await pywebview.api.ws_set_pin(pin);
+    if (!r.ok) { errEl.textContent=r.error; errEl.style.display='block'; return; }
+    wsCurrentPin = pin;
+    wsClosePinModal(); wsUnlockView();
+
+  } else if (wsPinMode === 'unlock') {
+    const ok = await pywebview.api.ws_verify_pin(pin);
+    if (!ok) { errEl.textContent='Helytelen PIN!'; errEl.style.display='block';
+               document.getElementById('ws-pin-input').value=''; return; }
+    wsCurrentPin = pin;
+    // Betöltjük a credentialst
+    const creds = await pywebview.api.ws_get_credentials(pin);
+    if (creds.ok) {
+      document.getElementById('ws-url').value   = creds.admin_url || 'https://mywebshop.hu/admin';
+      document.getElementById('ws-email').value = creds.email    || '';
+      document.getElementById('ws-pass').value  = creds.password || '';
+    }
+    wsClosePinModal(); wsUnlockView();
+
+  } else if (wsPinMode === 'change') {
+    const oldPin = document.getElementById('ws-pin-old').value.trim();
+    if (pin.length < 4) { errEl.textContent='Min. 4 karakter!'; errEl.style.display='block'; return; }
+    if (pin !== pin2)   { errEl.textContent='A két PIN nem egyezik!'; errEl.style.display='block'; return; }
+    const r = await pywebview.api.ws_change_pin(oldPin, pin);
+    if (!r.ok) { errEl.textContent=r.error; errEl.style.display='block'; return; }
+    wsCurrentPin = pin;
+    wsClosePinModal();
+
+  } else if (wsPinMode === 'run') {
+    const ok = await pywebview.api.ws_verify_pin(pin);
+    if (!ok) { errEl.textContent='Helytelen PIN!'; errEl.style.display='block';
+               document.getElementById('ws-pin-input').value=''; return; }
+    wsCurrentPin = pin;
+    wsClosePinModal();
+    wsDoRun(pin);
+  }
+}
+function wsUnlockView() {
+  document.getElementById('ws-locked-view').style.display   = 'none';
+  document.getElementById('ws-unlocked-view').style.display = 'flex';
+}
+function wsLock() {
+  wsCurrentPin = '';
+  document.getElementById('ws-url').value   = '';
+  document.getElementById('ws-email').value = '';
+  document.getElementById('ws-pass').value  = '';
+  document.getElementById('ws-locked-view').style.display   = 'flex';
+  document.getElementById('ws-unlocked-view').style.display = 'none';
+}
+async function wsSaveCredentials() {
+  if (!wsCurrentPin) { wsOpenUnlock(); return; }
+  const r = await pywebview.api.ws_save_credentials(
+    wsCurrentPin,
+    document.getElementById('ws-url').value.trim(),
+    document.getElementById('ws-email').value.trim(),
+    document.getElementById('ws-pass').value.trim()
+  );
+  if (r.ok) {
+    const btn = event.target;
+    btn.textContent = '✓ Mentve!';
+    setTimeout(() => btn.textContent = '💾 Mentés', 2000);
+  }
+}
+
+async function runWebshopCheck() {
+  let codes = [];
+  if (wsSource === 'results') {
+    codes = (window._tableData || []).filter(r => r.avail === 'Van' || r.avail === 'Rendelhető').map(r => r.code);
+  } else {
+    codes = wsFileCodes;
+  }
+  if (!codes.length) { alert('Nincs ellenőrizendő cikkszám!'); return; }
+
+  // Ha nincs PIN a sessionben, kérjük be
+  if (!wsCurrentPin) {
+    wsPinMode = 'run';
+    wsPendingCodes = codes;
+    document.getElementById('ws-pin-title').textContent = '🔑 PIN szükséges';
+    document.getElementById('ws-pin-desc').textContent  = 'Add meg a PIN kódot az ellenőrzés indításához.';
+    document.getElementById('ws-pin-lbl1').textContent  = 'PIN kód';
+    document.getElementById('ws-pin-new-row').style.display = 'none';
+    document.getElementById('ws-pin-old-row').style.display = 'none';
+    document.getElementById('ws-pin-input').value = '';
+    document.getElementById('ws-pin-error').style.display = 'none';
+    document.getElementById('ws-pin-overlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('ws-pin-input').focus(), 100);
+    return;
+  }
+  wsDoRun(wsCurrentPin, codes);
+}
+let wsPendingCodes = [];
+async function wsDoRun(pin, codes) {
+  if (!codes) codes = wsPendingCodes;
+  wsRunning = true;
+  document.getElementById('ws-run-btn').disabled = true;
+  document.getElementById('ws-progress-box').style.display = 'block';
+  document.getElementById('ws-results-box').style.display = 'none';
+  document.getElementById('ws-error-box').style.display = 'none';
+  document.getElementById('ws-prog-bar').style.width = '0%';
+  document.getElementById('ws-prog-cur').textContent = `0 / ${codes.length}`;
+  await pywebview.api.ws_run_check_with_pin(pin, codes);
+}
+function onWebshopCheckProgress(code, cur, total) {
+  const pct = Math.round(cur / total * 100);
+  document.getElementById('ws-prog-bar').style.width = pct + '%';
+  document.getElementById('ws-prog-cur').textContent = `${cur} / ${total}`;
+  document.getElementById('ws-prog-code').textContent = code;
+}
+function onWebshopCheckDone(result) {
+  wsRunning = false;
+  document.getElementById('ws-run-btn').disabled = false;
+  if (result.error) {
+    document.getElementById('ws-error-box').style.display = 'block';
+    document.getElementById('ws-error-box').textContent = '⚠ ' + result.error;
+    return;
+  }
+  document.getElementById('ws-results-box').style.display = 'block';
+  document.getElementById('ws-res-van').textContent   = result.van;
+  document.getElementById('ws-res-nincs').textContent = result.nincs;
+  if (result.xlsx) {
+    document.getElementById('ws-xlsx-info').textContent = '✓ Excel mentve: ' + result.xlsx;
+  }
+}
+</script>
+
+
+<script>
+// ── Webshop aktiválás ──────────────────────────────────────────────────────
+async function wsInitActivation() {
+  try {
+    const activated = await pywebview.api.ws_check_activated();
+    if (activated) wsShowWebshopFeature();
+  } catch(e) {}
+}
+function wsShowWebshopFeature() {
+  const s = document.getElementById('ws-section');
+  const b = document.getElementById('ws-btn-wrapper');
+  if (s) s.style.display = 'block';
+  if (b) b.style.display = 'block';
+}
+async function wsDoActivate() {
+  const code  = document.getElementById('ws-activate-input').value.trim();
+  const errEl = document.getElementById('ws-activate-error');
+  errEl.style.display = 'none';
+  if (!code) return;
+  const r = await pywebview.api.ws_activate(code);
+  if (r.ok) {
+    wsShowWebshopFeature();
+    document.getElementById('ws-activate-section').style.display = 'none';
+    document.getElementById('ws-activate-input').value = '';
+    alert('✓ Funkció aktiválva!');
+  } else {
+    errEl.textContent = r.error || 'Helytelen kód.';
+    errEl.style.display = 'block';
+    document.getElementById('ws-activate-input').value = '';
+  }
+}
+
+// Titkos trigger: 5x kattintás a Settings modal fejlécére
+let wsSecretClicks = 0, wsSecretTimer = null;
+function wsSecretClick() {
+  wsSecretClicks++;
+  clearTimeout(wsSecretTimer);
+  wsSecretTimer = setTimeout(() => { wsSecretClicks = 0; }, 2000);
+  if (wsSecretClicks >= 5) {
+    wsSecretClicks = 0;
+    const el = document.getElementById('ws-activate-section');
+    if (el) {
+      el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+      if (el.style.display === 'flex')
+        setTimeout(() => document.getElementById('ws-activate-input').focus(), 100);
+    }
+  }
+}
+
+window.addEventListener('pywebviewready', () => { wsInitActivation(); });
+</script>
+
 </body>
 </html>

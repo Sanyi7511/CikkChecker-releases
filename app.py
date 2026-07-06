@@ -2,7 +2,7 @@
 CikkChecker v3 – pywebview + Rust backend
 Modern gradient web UI with native window.
 """
-import json, os, queue, subprocess, sys, tempfile, threading, time
+import json, os, queue, subprocess, sys, tempfile, threading, time, hashlib, base64
 from collections import Counter
 from datetime import datetime
 from tkinter import filedialog
@@ -23,6 +23,11 @@ def _read_version():
 APP_VERSION = _read_version()
 UPDATE_REPO  = "Sanyi7511/CikkChecker-releases"
 UPDATE_ASSET = "CikkCheckerSetup.exe"
+
+# Webshop funkció aktiváló kódja — csak hash tárolva, a kód itt van hardcode-olva
+# VÁLTOZTASD MEG a publikus kiadás előtt!
+WEBSHOP_SECRET = "BBEE4A7C6ADA21D5"  # <-- IDE ÍRD A SAJÁT KÓDODAT
+_WEBSHOP_SECRET_HASH = hashlib.sha256(WEBSHOP_SECRET.encode()).hexdigest()
 BINARY_NAME  = "checker_core.exe" if sys.platform == "win32" else "checker_core"
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 BINARY_PATH  = os.path.join(BASE_DIR, BINARY_NAME)
@@ -51,6 +56,9 @@ DEFAULT_CONFIG = {
     "last_txt": "", "last_txt_type": "txt",
     # Több weboldal
     "extra_urls": "",
+    # Webshop védelem
+    "ws_activated": False,  # True ha a titkos kód egyszer már be lett írva
+    "ws_pin_hash": "", "ws_url_enc": "", "ws_email_enc": "", "ws_pass_enc": "",
     # Ütemező
     "sched_enabled": False, "sched_time": "08:00", "sched_days": [1,2,3,4,5],
 }
@@ -1373,6 +1381,238 @@ $notify.Dispose()
 
     def get_scheduler(self):
         return self._cfg.get("scheduler", {"enabled": False, "time": "08:00", "days": [1,2,3,4,5]})
+
+
+    # ── Webshop ellenőrzés (olaszautobonto.hu admin) ──────────────────────
+    def webshop_check(self, config):
+        """
+        Ellenőrzi, hogy az IC cikkszámok rajta vannak-e a webshop adminban.
+        config: { admin_url, email, password, codes: [str] }
+        """
+        threading.Thread(
+            target=self._run_webshop_check,
+            args=(config,),
+            daemon=True
+        ).start()
+        return True
+
+    def _run_webshop_check(self, config):
+        import re as _re
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            self._js("onWebshopCheckDone({error:'beautifulsoup4 nincs telepítve'})")
+            return
+
+        admin_url = config.get("admin_url", "https://mywebshop.hu/admin").rstrip("/")
+        email     = config.get("email", "")
+        password  = config.get("password", "")
+        codes     = config.get("codes", [])
+
+        if not codes:
+            self._js("onWebshopCheckDone({error:'Nincs ellenőrizendő cikkszám.'})")
+            return
+
+        total = len(codes)
+        self._js(f"onWebshopCheckProgress('Bejelentkezés...', 0, {total})")
+
+        session = requests.Session()
+        session.headers.update({"User-Agent": "Mozilla/5.0"})
+
+        # Bejelentkezés
+        try:
+            r = session.post(
+                f"{admin_url}/index.php",
+                data={"kuld": "1", "nev": email, "jelszo": password},
+                allow_redirects=True, timeout=30
+            )
+            if "Műszerfal" not in r.text and "muszerfal" not in r.url:
+                self._js("onWebshopCheckDone({error:'Bejelentkezés sikertelen! Ellenőrizd az adatokat.'})")
+                return
+        except Exception as e:
+            self._js(f"onWebshopCheckDone({{error:'Kapcsolódási hiba: {str(e)[:60]}'}})")
+            return
+
+        self._js(f"onWebshopCheckProgress('Ellenőrzés folyamatban...', 0, {total})")
+
+        van_list   = []
+        nincs_list = []
+
+        for i, code in enumerate(codes):
+            try:
+                r = session.post(
+                    f"{admin_url}/termek/",
+                    data={
+                        "szukit_reszletes": "", "szukit_kategoria": "0",
+                        "szukit_gyartmany": "0", "szukit_tipus": "0",
+                        "szukit_aktiv": "0", "szukit_cikkszam": code,
+                        "szukit_sorszam": "", "szukit_allapot": "0", "mehet": "1",
+                    },
+                    timeout=30
+                )
+                szoveg = BeautifulSoup(r.text, "html.parser").get_text(" ", strip=True).lower()
+
+                if "összesen: 0" in szoveg or "nincs találat" in szoveg:
+                    statusz = "Nincs"
+                    nincs_list.append(code)
+                elif "összesen:" in szoveg:
+                    statusz = "Van"
+                    van_list.append(code)
+                else:
+                    m = _re.search(r"összesen:\s*(\d+)\s*term", szoveg)
+                    if m:
+                        statusz = "Van" if int(m.group(1)) > 0 else "Nincs"
+                        (van_list if statusz == "Van" else nincs_list).append(code)
+                    else:
+                        statusz = "Ismeretlen"
+                        nincs_list.append(code)
+
+            except Exception:
+                statusz = "Ismeretlen"
+                nincs_list.append(code)
+
+            pct = int((i + 1) / total * 100)
+            self._js(f"onWebshopCheckProgress({json.dumps(code)}, {i+1}, {total})")
+            time.sleep(0.4)
+
+        # Excel export
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import PatternFill, Font
+            wb = Workbook(); ws = wb.active; ws.title = "Webshop ellenőrzés"
+            ws.append(["IC Cikkszám", "Fent van az oldalon?"])
+            ws["A1"].font = Font(bold=True, color="E8EBF0", size=10)
+            ws["B1"].font = Font(bold=True, color="E8EBF0", size=10)
+            ws.column_dimensions["A"].width = 30
+            ws.column_dimensions["B"].width = 22
+            zold  = PatternFill("solid", fgColor="0A2016")
+            piros = PatternFill("solid", fgColor="200A0A")
+            for code in van_list:
+                ws.append([code, "Van"])
+                r = ws.max_row
+                ws[f"A{r}"].font = Font(color="E8EBF0", size=10)
+                ws[f"B{r}"].font = Font(color="22C55E", bold=True, size=10)
+                ws[f"B{r}"].fill = zold
+            for code in nincs_list:
+                ws.append([code, "Nincs"])
+                r = ws.max_row
+                ws[f"A{r}"].font = Font(color="E8EBF0", size=10)
+                ws[f"B{r}"].font = Font(color="EF4444", bold=True, size=10)
+                ws[f"B{r}"].fill = piros
+
+            desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+            out_dir  = desktop if os.path.exists(desktop) else os.path.abspath(".")
+            ts       = datetime.now().strftime("%Y%m%d_%H%M")
+            xlsx_path = os.path.join(out_dir, f"webshop_osszehasonlitas_{ts}.xlsx")
+            wb.save(xlsx_path)
+
+            result = {
+                "van":   len(van_list),
+                "nincs": len(nincs_list),
+                "total": total,
+                "xlsx":  xlsx_path,
+            }
+        except Exception as e:
+            result = {
+                "van":   len(van_list),
+                "nincs": len(nincs_list),
+                "total": total,
+                "error": f"Excel mentés hiba: {e}",
+            }
+
+        self._js(f"onWebshopCheckDone({json.dumps(result)})")
+
+
+
+    # ── Webshop funkció aktiválása titkos kóddal ─────────────────────────
+    def ws_check_activated(self) -> bool:
+        """True ha a funkció már aktiválva van ezen a gépen."""
+        return bool(self._cfg.get("ws_activated", False))
+
+    def ws_activate(self, code: str) -> dict:
+        """Aktiválja a webshop funkciót ha a kód helyes."""
+        import hashlib as _hl
+        if _hl.sha256(code.strip().encode()).hexdigest() == _WEBSHOP_SECRET_HASH:
+            self._cfg["ws_activated"] = True
+            save_config_file(self._cfg)
+            return {"ok": True}
+        return {"ok": False, "error": "Helytelen aktiváló kód."}
+
+    # ── Webshop PIN védelem ───────────────────────────────────────────────
+    @staticmethod
+    def _pin_hash(pin: str) -> str:
+        return hashlib.sha256(pin.strip().encode()).hexdigest()
+
+    @staticmethod
+    def _enc(value: str) -> str:
+        """Egyszerű obfuszkáció — nem kriptográfiai erősségű, de nem plain text."""
+        return base64.b64encode(value.encode("utf-8")).decode()
+
+    @staticmethod
+    def _dec(value: str) -> str:
+        try:
+            return base64.b64decode(value.encode()).decode("utf-8")
+        except Exception:
+            return ""
+
+    def ws_has_pin(self) -> bool:
+        return bool(self._cfg.get("ws_pin_hash", ""))
+
+    def ws_set_pin(self, pin: str) -> dict:
+        """PIN beállítása (első indítás vagy csere)."""
+        pin = pin.strip()
+        if len(pin) < 4:
+            return {"ok": False, "error": "A PIN legalább 4 karakter legyen."}
+        self._cfg["ws_pin_hash"] = self._pin_hash(pin)
+        save_config_file(self._cfg)
+        return {"ok": True}
+
+    def ws_verify_pin(self, pin: str) -> bool:
+        """PIN ellenőrzés — True ha helyes."""
+        stored = self._cfg.get("ws_pin_hash", "")
+        if not stored:
+            return False
+        return self._pin_hash(pin.strip()) == stored
+
+    def ws_change_pin(self, old_pin: str, new_pin: str) -> dict:
+        if not self.ws_verify_pin(old_pin):
+            return {"ok": False, "error": "Helytelen jelenlegi PIN."}
+        return self.ws_set_pin(new_pin)
+
+    def ws_save_credentials(self, pin: str, admin_url: str, email: str, password: str) -> dict:
+        """PIN ellenőrzés után menti a credentialst."""
+        if not self.ws_verify_pin(pin):
+            return {"ok": False, "error": "Helytelen PIN."}
+        self._cfg["ws_url_enc"]   = self._enc(admin_url)
+        self._cfg["ws_email_enc"] = self._enc(email)
+        self._cfg["ws_pass_enc"]  = self._enc(password)
+        save_config_file(self._cfg)
+        return {"ok": True}
+
+    def ws_get_credentials(self, pin: str) -> dict:
+        """PIN ellenőrzés után visszaadja a credentialst."""
+        if not self.ws_verify_pin(pin):
+            return {"ok": False, "error": "Helytelen PIN."}
+        return {
+            "ok":       True,
+            "admin_url": self._dec(self._cfg.get("ws_url_enc", "")),
+            "email":     self._dec(self._cfg.get("ws_email_enc", "")),
+            "password":  self._dec(self._cfg.get("ws_pass_enc", "")),
+        }
+
+    def ws_run_check_with_pin(self, pin: str, codes: list) -> bool:
+        """PIN ellenőrzés után indítja az összehasonlítást."""
+        creds = self.ws_get_credentials(pin)
+        if not creds["ok"]:
+            self._js(f"onWebshopCheckDone({{error:'Helytelen PIN.'}})")
+            return False
+        config = {
+            "admin_url": creds["admin_url"],
+            "email":     creds["email"],
+            "password":  creds["password"],
+            "codes":     codes,
+        }
+        return self.webshop_check(config)
 
     # ── JS helper ─────────────────────────────────────────────────────────
     def _js(self, code):
