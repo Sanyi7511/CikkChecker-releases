@@ -1212,225 +1212,1662 @@ select option { background:var(--select-opt); color:var(--text); }
 <!-- ═══ KÓD KINYERŐ MODAL ════════════════════════════════════════════════ -->
 
 <script>
-// ── Webshop ellenőrzés ─────────────────────────────────────────────────────
-let wsSource = 'results';
-let wsFileCodes = [];
-let wsRunning = false;
-let wsPinMode = 'unlock';   // 'unlock' | 'set' | 'change' | 'run'
-let wsCurrentPin = '';       // megjegyezzük a sessionre
 
-function openWebshopCheck() {
-  document.getElementById('ws-overlay').style.display = 'flex';
-  wsUpdateCodesInfo();
+// ══ TRANSLATIONS ═════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  hu: {
+    s_connection:"Kapcsolat",
+    s_login:"Bejelentkezés",
+    s_source:"Cikkszám forrás",
+    url_label:"Weboldal URL",
+    login_required:"Bejelentkezés szükséges",
+    username:"Felhasználónév",
+    password:"Jelszó",
+    dz_text:"Húzd ide a fájlt",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Összes",
+    stat_done:"Kész",
+    stat_van:"Van",
+    stat_nincs:"Nincs",
+    stat_kulso:"Külső",
+    status_waiting:"Várakozás",
+    results_title:"Eredmények",
+    log_title:"Napló",
+    manual_title:"Kézi bevitel",
+    col_code:"Cikkszám",
+    col_avail:"Elérhetőség",
+    btn_start:"▶  Indítás",
+    btn_continue:"▶  Folytatás",
+    btn_stop:"⏹ Stop",
+    btn_restart:"↺ Újra",
+    btn_clear_log:"🗑 Log törlése",
+    exp_copy:"📋 Másolás",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Megjelenés",
+    sec_updates:"Frissítések",
+    sec_defaults:"Alapértékek",
+    sec_duplicates:"Duplikátumok",
+    sec_language:"Nyelv",
+    settings_title:"Beállítások",
+    btn_save:"Mentés",
+    btn_cancel:"Mégse",
+    detecting:"⟳ Detektálás...",
+    login_auto_yes:"🔒 Bejelentkezés szükséges (auto)",
+    login_auto_no:"🔓 Nem szükséges (auto)",
+    login_check_fail:"⚠ Nem sikerült ellenőrizni",
+    col_price:"Ár",
+    s_scheduler:"Ütemező",
+    s_multisites:"Több weboldal",
+    lbl_sched_enable:"Automatikus futtatás",
+    lbl_sched_time:"Időpont",
+    lbl_sched_days:"Napok",
+    multisite_hint:"Soronként 1 URL — az összeset ellenőrzi",
+    history_title:"Előzmények",
+    lbl_theme:"Téma",
+    lbl_language:"Nyelv",
+    lbl_auto_update:"Automatikus frissítés keresése",
+    lbl_update_freq:"Ellenőrzés gyakorisága",
+    lbl_manual_update:"Kézi frissítés keresése",
+    lbl_sleep:"Lekérések közt (mp)",
+    lbl_save_every:"Mentési köz (db)",
+    lbl_price:"Ár lekérés",
+    lbl_auto_rm:"Auto eltávolítás",
+    lbl_dont_ask:"Ne kérdezzen rá",
+    lbl_save_dup:"Duplikátumok TXT-be",
+    lbl_sort:"Sorrend",
+    lbl_duplicates_title:"Duplikátumok",
+    opt_on_start:"Indításkor",
+    opt_daily:"Naponta",
+    opt_never:"Soha",
+    opt_dark:"🌙 Sötét",
+    opt_light:"☀️ Világos",
+    username_label:"Email / Felhasználónév",col_images:"Képek",
+  },
+  en: {
+    s_connection:"Connection",
+    s_login:"Login",
+    s_source:"Article code source",
+    url_label:"Website URL",
+    login_required:"Login required",
+    username:"Username",
+    password:"Password",
+    dz_text:"Drop file here",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Total",
+    stat_done:"Done",
+    stat_van:"In stock",
+    stat_nincs:"Out of stock",
+    stat_kulso:"External",
+    status_waiting:"Waiting",
+    results_title:"Results",
+    log_title:"Log",
+    manual_title:"Manual codes",
+    col_code:"Article code",
+    col_avail:"Availability",
+    btn_start:"▶  Start",
+    btn_continue:"▶  Continue",
+    btn_stop:"⏹ Stop",
+    btn_restart:"↺ Restart",
+    btn_clear_log:"🗑 Clear log",
+    exp_copy:"📋 Copy",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Appearance",
+    sec_updates:"Updates",
+    sec_defaults:"Defaults",
+    sec_duplicates:"Duplicates",
+    sec_language:"Language",
+    settings_title:"Settings",
+    btn_save:"Save",
+    btn_cancel:"Cancel",
+    detecting:"⟳ Detecting...",
+    login_auto_yes:"🔒 Login required (auto)",
+    login_auto_no:"🔓 No login needed (auto)",
+    login_check_fail:"⚠ Could not verify",
+    col_price:"Price",
+    s_scheduler:"Scheduler",
+    s_multisites:"Multiple websites",
+    lbl_sched_enable:"Auto run",
+    lbl_sched_time:"Time",
+    lbl_sched_days:"Days",
+    multisite_hint:"One URL per line",
+    history_title:"History",
+    lbl_theme:"Theme",
+    lbl_language:"Language",
+    lbl_auto_update:"Automatic update check",
+    lbl_update_freq:"Check frequency",
+    lbl_manual_update:"Manual update check",
+    lbl_sleep:"Delay between requests (s)",
+    lbl_save_every:"Save interval (items)",
+    lbl_price:"Fetch prices",
+    lbl_auto_rm:"Auto remove duplicates",
+    lbl_dont_ask:"Don't ask again",
+    lbl_save_dup:"Save duplicates to TXT",
+    lbl_sort:"Sort order",
+    lbl_duplicates_title:"Duplicates",
+    opt_on_start:"On startup",
+    opt_daily:"Daily",
+    opt_never:"Never",
+    opt_dark:"🌙 Dark",
+    opt_light:"☀️ Light",
+    username_label:"Email / Username",col_images:"Images",
+  },
+  de: {
+    s_connection:"Verbindung",
+    s_login:"Anmeldung",
+    s_source:"Artikelnummern Quelle",
+    url_label:"Website URL",
+    login_required:"Anmeldung erforderlich",
+    username:"Benutzername",
+    password:"Passwort",
+    dz_text:"Datei hierher ziehen",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Gesamt",
+    stat_done:"Fertig",
+    stat_van:"Verfügbar",
+    stat_nincs:"Nicht verfügbar",
+    stat_kulso:"Externes Lager",
+    status_waiting:"Warten",
+    results_title:"Ergebnisse",
+    log_title:"Protokoll",
+    manual_title:"Manuelle Eingabe",
+    col_code:"Artikelnummer",
+    col_avail:"Verfügbarkeit",
+    btn_start:"▶  Starten",
+    btn_continue:"▶  Fortsetzen",
+    btn_stop:"⏹ Stopp",
+    btn_restart:"↺ Neustart",
+    btn_clear_log:"🗑 Log leeren",
+    exp_copy:"📋 Kopieren",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Darstellung",
+    sec_updates:"Updates",
+    sec_defaults:"Standardwerte",
+    sec_duplicates:"Duplikate",
+    sec_language:"Sprache",
+    settings_title:"Einstellungen",
+    btn_save:"Speichern",
+    btn_cancel:"Abbrechen",
+    detecting:"⟳ Erkennung...",
+    login_auto_yes:"🔒 Anmeldung erforderlich (auto)",
+    login_auto_no:"🔓 Keine Anmeldung (auto)",
+    login_check_fail:"⚠ Konnte nicht prüfen",
+    col_price:"Preis",
+    s_scheduler:"Zeitplan",
+    s_multisites:"Mehrere Websites",
+    lbl_sched_enable:"Automatisch",
+    lbl_sched_time:"Uhrzeit",
+    lbl_sched_days:"Tage",
+    multisite_hint:"Eine URL pro Zeile",
+    history_title:"Verlauf",
+    lbl_theme:"Thema",
+    lbl_language:"Sprache",
+    lbl_auto_update:"Automatische Update-Prüfung",
+    lbl_update_freq:"Prüfhäufigkeit",
+    lbl_manual_update:"Manuelle Update-Prüfung",
+    lbl_sleep:"Verzögerung (Sek.)",
+    lbl_save_every:"Speicherintervall (Eintr.)",
+    lbl_price:"Preise abrufen",
+    lbl_auto_rm:"Duplikate automatisch entfernen",
+    lbl_dont_ask:"Nicht mehr fragen",
+    lbl_save_dup:"Duplikate als TXT speichern",
+    lbl_sort:"Reihenfolge",
+    lbl_duplicates_title:"Duplikate",
+    opt_on_start:"Beim Start",
+    opt_daily:"Täglich",
+    opt_never:"Nie",
+    opt_dark:"🌙 Dunkel",
+    opt_light:"☀️ Hell",
+    username_label:"E-Mail / Benutzername",col_images:"Bilder",
+  },
+  sk: {
+    s_connection:"Pripojenie",
+    s_login:"Prihlásenie",
+    s_source:"Zdroj kódov",
+    url_label:"URL webovej stránky",
+    login_required:"Prihlásenie je potrebné",
+    username:"Používateľské meno",
+    password:"Heslo",
+    dz_text:"Presuňte súbor sem",
+    dz_sub:"TXT · CSV · Excel",
+    stat_total:"Celkom",
+    stat_done:"Hotovo",
+    stat_van:"Dostupné",
+    stat_nincs:"Nedostupné",
+    stat_kulso:"Externý sklad",
+    status_waiting:"Čakanie",
+    results_title:"Výsledky",
+    log_title:"Protokol",
+    manual_title:"Manuálne kódy",
+    col_code:"Kód článku",
+    col_avail:"Dostupnosť",
+    btn_start:"▶  Spustiť",
+    btn_continue:"▶  Pokračovať",
+    btn_stop:"⏹ Zastaviť",
+    btn_restart:"↺ Reštart",
+    btn_clear_log:"🗑 Vymazať log",
+    exp_copy:"📋 Kopírovať",
+    exp_csv:"📄 CSV",
+    exp_excel:"📊 Excel",
+    exp_pdf:"🖨 PDF",
+    sec_appearance:"Vzhľad",
+    sec_updates:"Aktualizácie",
+    sec_defaults:"Predvolené",
+    sec_duplicates:"Duplikáty",
+    sec_language:"Jazyk",
+    settings_title:"Nastavenia",
+    btn_save:"Uložiť",
+    btn_cancel:"Zrušiť",
+    detecting:"⟳ Zisťovanie...",
+    login_auto_yes:"🔒 Prihlásenie potrebné (auto)",
+    login_auto_no:"🔓 Prihlásenie nepotrebné (auto)",
+    login_check_fail:"⚠ Overenie zlyhalo",
+    col_price:"Cena",
+    s_scheduler:"Plánovač",
+    s_multisites:"Viac webov",
+    lbl_sched_enable:"Automatické spustenie",
+    lbl_sched_time:"Čas",
+    lbl_sched_days:"Dni",
+    multisite_hint:"Jedna URL na riadok",
+    history_title:"História",
+    lbl_theme:"Téma",
+    lbl_language:"Jazyk",
+    lbl_auto_update:"Automatická kontrola aktualizácií",
+    lbl_update_freq:"Frekvencia kontroly",
+    lbl_manual_update:"Manuálna kontrola aktualizácií",
+    lbl_sleep:"Oneskorenie (s)",
+    lbl_save_every:"Interval uloženia (pol.)",
+    lbl_price:"Načítať ceny",
+    lbl_auto_rm:"Automatické odstránenie",
+    lbl_dont_ask:"Nepýtať sa znova",
+    lbl_save_dup:"Uložiť duplikáty do TXT",
+    lbl_sort:"Poradie",
+    lbl_duplicates_title:"Duplikáty",
+    opt_on_start:"Pri spustení",
+    opt_daily:"Denne",
+    opt_never:"Nikdy",
+    opt_dark:"🌙 Tmavý",
+    opt_light:"☀️ Svetlý",
+  },
+    username_label:"E-mail / Používateľské meno",col_images:"Obrázky",
+};
+
+let _lang = 'hu';
+
+function t(key) {
+  return (TRANSLATIONS[_lang] || TRANSLATIONS.hu)[key] || TRANSLATIONS.hu[key] || key;
 }
-function closeWsModal() {
-  if (wsRunning) return;
-  document.getElementById('ws-overlay').style.display = 'none';
-}
-function wsCloseIfBg(e) {
-  if (e.target.id === 'ws-overlay') closeWsModal();
-}
-function wsSetSource(src) {
-  wsSource = src;
-  document.getElementById('ws-src-results').style.background = src==='results' ? 'rgba(123,92,240,.1)' : '';
-  document.getElementById('ws-src-results').style.borderColor = src==='results' ? 'var(--accent)' : '';
-  document.getElementById('ws-src-results').style.color = src==='results' ? 'var(--accent)' : '';
-  document.getElementById('ws-src-file').style.background = src==='file' ? 'rgba(123,92,240,.1)' : '';
-  document.getElementById('ws-src-file').style.borderColor = src==='file' ? 'var(--accent)' : '';
-  document.getElementById('ws-src-file').style.color = src==='file' ? 'var(--accent)' : '';
-  document.getElementById('ws-file-row').style.display = src==='file' ? 'flex' : 'none';
-  wsUpdateCodesInfo();
-}
-async function wsBrowseFile() {
-  const path = await pywebview.api.browse_file('txt');
-  if (!path) return;
-  document.getElementById('ws-file-path').value = path;
-  const parsed = await pywebview.api.parse_file(path, 'txt', 0);
-  if (parsed) { wsFileCodes = parsed.codes; wsUpdateCodesInfo(); }
-}
-function wsUpdateCodesInfo() {
-  const el = document.getElementById('ws-codes-info');
-  if (wsSource === 'results') {
-    const rows = window._tableData ? window._tableData.filter(r => r.avail === 'Van' || r.avail === 'Rendelhető') : [];
-    el.textContent = `${rows.length} db "Van"/"Rendelhető" státuszú cikkszám az aktuális eredményekből`;
-  } else {
-    el.textContent = wsFileCodes.length ? `${wsFileCodes.length} cikkszám betöltve` : 'Nincs fájl betöltve';
+
+function applyLanguage(lang) {
+  _lang = lang || 'hu';
+  // Update all elements with data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (val) el.textContent = val;
+  });
+  // Update each modal title by specific element
+  const settingsTitle = document.querySelector('#settings-overlay .modal-title');
+  if (settingsTitle) settingsTitle.textContent = '⚙ ' + t('settings_title');
+  // Update detect badge if visible
+  const db = document.getElementById('detect-badge');
+  if (db && db.style.display !== 'none') {
+    const txt = db.textContent;
+    if (txt.includes('szükséges') || txt.includes('required') || txt.includes('erforderlich') || txt.includes('potrebné'))
+      db.textContent = t('login_auto_yes');
+    else if (txt.includes('Nem') || txt.includes('No') || txt.includes('Keine') || txt.includes('nepotrebné'))
+      db.textContent = t('login_auto_no');
   }
+  // Update start button
+  updateStartBtn();
 }
-// ── PIN modal vezérlés ──────────────────────────────────────────────────────
-function wsOpenUnlock() {
-  wsPinMode = 'unlock';
-  document.getElementById('ws-pin-title').textContent = '🔑 PIN megadása';
-  document.getElementById('ws-pin-desc').textContent  = 'Add meg a webshop PIN kódot a hozzáféréshez.';
-  document.getElementById('ws-pin-lbl1').textContent  = 'PIN kód';
-  document.getElementById('ws-pin-new-row').style.display = 'none';
-  document.getElementById('ws-pin-old-row').style.display = 'none';
-  document.getElementById('ws-pin-input').value = '';
-  document.getElementById('ws-pin-error').style.display = 'none';
-  wsCheckIfFirstTime();
-}
-async function wsCheckIfFirstTime() {
-  const hasPin = await pywebview.api.ws_has_pin();
-  if (!hasPin) {
-    wsPinMode = 'set';
-    document.getElementById('ws-pin-title').textContent = '🔑 PIN beállítása';
-    document.getElementById('ws-pin-desc').textContent  = 'Állíts be egy PIN kódot a webshop adatok védelméhez (min. 4 karakter).';
-    document.getElementById('ws-pin-lbl1').textContent  = 'Új PIN kód';
-    document.getElementById('ws-pin-new-row').style.display = 'block';
-    document.getElementById('ws-pin-input2').value = '';
+
+// ══ STATE ═════════════════════════════════════════════════════════════════
+const state = {
+  running:false, canContinue:false,
+  stats:{van:0,nincs:0,kulso:0,ism:0},
+  unknownMode:null, unknownResolve:null,
+  updateVersion:null, updateAsset:null,
+
+  sourceData:[], sourceType:'txt', sourcePath:'',
+};
+
+// ══ INIT ══════════════════════════════════════════════════════════════════
+// Wait for pywebview API to be ready (max 5 seconds)
+async function waitForPy() {
+  for (let i = 0; i < 50; i++) {
+    if (window.pywebview?.api) return true;
+    await new Promise(r => setTimeout(r, 100));
   }
-  document.getElementById('ws-pin-overlay').style.display = 'flex';
-  setTimeout(() => document.getElementById('ws-pin-input').focus(), 100);
+  return false;
 }
-function wsOpenChangePin() {
-  wsPinMode = 'change';
-  document.getElementById('ws-pin-title').textContent = '🔧 PIN csere';
-  document.getElementById('ws-pin-desc').textContent  = 'Add meg a régi és az új PIN kódot.';
-  document.getElementById('ws-pin-lbl1').textContent  = 'Új PIN kód';
-  document.getElementById('ws-pin-new-row').style.display = 'block';
-  document.getElementById('ws-pin-old-row').style.display = 'block';
-  document.getElementById('ws-pin-input').value  = '';
-  document.getElementById('ws-pin-input2').value = '';
-  document.getElementById('ws-pin-old').value    = '';
-  document.getElementById('ws-pin-error').style.display = 'none';
-  document.getElementById('ws-pin-overlay').style.display = 'flex';
-}
-function wsClosePinModal() {
-  document.getElementById('ws-pin-overlay').style.display = 'none';
-}
-async function wsPinConfirm() {
-  const pin  = document.getElementById('ws-pin-input').value.trim();
-  const pin2 = document.getElementById('ws-pin-input2').value.trim();
-  const errEl = document.getElementById('ws-pin-error');
-  errEl.style.display = 'none';
 
-  if (wsPinMode === 'set') {
-    if (pin.length < 4) { errEl.textContent='Min. 4 karakter!'; errEl.style.display='block'; return; }
-    if (pin !== pin2)   { errEl.textContent='A két PIN nem egyezik!'; errEl.style.display='block'; return; }
-    const r = await pywebview.api.ws_set_pin(pin);
-    if (!r.ok) { errEl.textContent=r.error; errEl.style.display='block'; return; }
-    wsCurrentPin = pin;
-    wsClosePinModal(); wsUnlockView();
+window.addEventListener('load', async () => {
+  // Default theme while waiting for config
+  applyTheme('dark');
+  toggleLogin();
 
-  } else if (wsPinMode === 'unlock') {
-    const ok = await pywebview.api.ws_verify_pin(pin);
-    if (!ok) { errEl.textContent='Helytelen PIN!'; errEl.style.display='block';
-               document.getElementById('ws-pin-input').value=''; return; }
-    wsCurrentPin = pin;
-    // Betöltjük a credentialst
-    const creds = await pywebview.api.ws_get_credentials(pin);
-    if (creds.ok) {
-      document.getElementById('ws-url').value   = creds.admin_url || 'https://mywebshop.hu/admin';
-      document.getElementById('ws-email').value = creds.email    || '';
-      document.getElementById('ws-pass').value  = creds.password || '';
+  const ready = await waitForPy();
+  if (!ready) { console.warn('pywebview not ready'); return; }
+
+  try {
+    const cfg = await py('get_config');
+    if (cfg) {
+      applyConfig(cfg);
     }
-    wsClosePinModal(); wsUnlockView();
+  } catch(e) {
+    console.warn('get_config failed:', e);
+  }
+  setTimeout(() => py('check_update').catch(()=>{}), 3000);
+});
 
-  } else if (wsPinMode === 'change') {
-    const oldPin = document.getElementById('ws-pin-old').value.trim();
-    if (pin.length < 4) { errEl.textContent='Min. 4 karakter!'; errEl.style.display='block'; return; }
-    if (pin !== pin2)   { errEl.textContent='A két PIN nem egyezik!'; errEl.style.display='block'; return; }
-    const r = await pywebview.api.ws_change_pin(oldPin, pin);
-    if (!r.ok) { errEl.textContent=r.error; errEl.style.display='block'; return; }
-    wsCurrentPin = pin;
-    wsClosePinModal();
+// ══ PYTHON BRIDGE ═════════════════════════════════════════════════════════
+async function py(method, ...args) {
+  if (window.pywebview?.api) return await window.pywebview.api[method](...args);
+  return null;
+}
 
-  } else if (wsPinMode === 'run') {
-    const ok = await pywebview.api.ws_verify_pin(pin);
-    if (!ok) { errEl.textContent='Helytelen PIN!'; errEl.style.display='block';
-               document.getElementById('ws-pin-input').value=''; return; }
-    wsCurrentPin = pin;
-    wsClosePinModal();
-    wsDoRun(pin);
+// ══ PYTHON → JS CALLBACKS ════════════════════════════════════════════════
+function onLog(msg) {
+  const el = document.getElementById('log-body');
+  const d = document.createElement('div'); d.textContent = msg;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+function onStatus(msg) { document.getElementById('status-text').textContent = msg || t('status_waiting'); }
+function onProgress(cur, tot) {
+  const pct = tot ? Math.round(cur/tot*100) : 0;
+  document.getElementById('pct-text').textContent = `${cur} / ${tot} (${pct}%)`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('s-done').textContent = cur;
+}
+function onResult(code, avail, price) {
+  if (avail==='Van') state.stats.van++;
+  else if (avail==='Nincs') state.stats.nincs++;
+  else if (avail==='Külső raktár') state.stats.kulso++;
+  else state.stats.ism++;
+  updateStats();
+  addRow(code, avail, price);
+}
+function onLoginDetected(req) {
+  document.getElementById('login-required').checked = req;
+  toggleLogin();
+  const b = document.getElementById('detect-badge');
+  b.style.display = 'block';
+  b.style.color = req ? 'var(--amber)' : 'var(--green)';
+  b.textContent = req ? t('login_auto_yes') : t('login_auto_no');
+}
+function onUnknown(code) {
+  return new Promise(resolve => {
+    state.unknownResolve = resolve;
+    document.getElementById('unk-code').textContent = 'Cikkszám: ' + code;
+    document.getElementById('unk-apply-all').checked = false;
+    document.getElementById('unknown-overlay').classList.add('show');
+  });
+}
+function onDone() {
+  onStatus('Kész ✓'); state.running = false; state.canContinue = false;
+  updateStartBtn(); document.getElementById('btn-start').disabled = false;
+}
+function onUpdateAvailable(version, asset) {
+  state.updateVersion = version; state.updateAsset = asset;
+  // Only show sidebar box — no main banner
+  const box = document.getElementById('sb-update-box');
+  const ver = document.getElementById('sb-update-ver');
+  if (box) box.style.display = 'block';
+  if (ver) ver.textContent = `v${version} elérhető`;
+}
+function onUpdateDownloading(version) {
+  const prog = document.getElementById('sb-upd-progress');
+  const btns = document.getElementById('sb-upd-btns');
+  const stat = document.getElementById('sb-upd-status');
+  const ver  = document.getElementById('sb-update-ver');
+  if (prog) prog.style.display = 'block';
+  if (btns) btns.style.display = 'none';
+  if (stat) stat.textContent = `v${version} letöltése...`;
+  if (ver)  ver.textContent  = `v${version} letöltése...`;
+}
+function onUpdateProgress(pct) {
+  const bar  = document.getElementById('sb-upd-bar');
+  const stat = document.getElementById('sb-upd-status');
+  if (bar)  bar.style.width    = pct + '%';
+  if (stat) stat.textContent   = `Letöltés: ${pct}%`;
+}
+function onUpdateReady() {
+  const stat = document.getElementById('sb-upd-status');
+  const ver  = document.getElementById('sb-update-ver');
+  if (stat) stat.textContent = 'Telepítés... Újraindulás hamarosan';
+  if (ver)  ver.textContent  = 'Telepítés folyamatban...';
+}
+function onUpdateFailed() {
+  const stat = document.getElementById('sb-upd-status');
+  const btns = document.getElementById('sb-upd-btns');
+  if (stat) stat.textContent  = '⚠ Frissítés sikertelen';
+  if (btns) btns.style.display = 'flex';
+}
+
+// ══ UI HELPERS ════════════════════════════════════════════════════════════
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+function toggleLogin() {
+  const show = document.getElementById('login-required').checked;
+  document.getElementById('login-card').style.display = show ? 'flex' : 'none';
+  document.getElementById('login-section-hdr').style.display = show ? 'block' : 'none';
+}
+
+function applyTheme(theme) {
+  let t = theme || 'dark';
+  if (t === 'rendszer') {
+    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'hofeher';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+
+  const LIGHT = ['hofeher','hofehér','light'];
+  const dark  = !LIGHT.includes(t);
+
+  // ── Per-theme palette ──────────────────────────────────────────────────
+  const themes = {
+    dark:      { bg:'#0D0821', bg2:'#1a0f3c', accent:'#7B5CF0', text:'#E8EBF0', text2:'#9BA3B4', text3:'#4A5568', modal:'rgba(26,15,60,.98)', modal2:'rgba(13,8,33,.98)', sidebar:'rgba(13,8,33,.85)', input:'rgba(0,0,0,.35)', inputBdr:'rgba(255,255,255,.10)', optBg:'#1a0f3c' },
+    hofeher:   { bg:'#EEF0FF', bg2:'#E0E4FF', accent:'#6B46EF', text:'#1E1240', text2:'#4B3F80', text3:'#9388B8', modal:'rgba(230,228,255,.98)', modal2:'rgba(240,242,255,.98)', sidebar:'rgba(230,228,255,.9)', input:'rgba(255,255,255,.85)', inputBdr:'rgba(100,80,200,.2)', optBg:'#E0E4FF' },
+    tengerke:  { bg:'#040D1A', bg2:'#081B35', accent:'#1E6FCC', text:'#D0E8FF', text2:'#7AABDD', text3:'#3A6090', modal:'rgba(8,24,50,.98)', modal2:'rgba(4,14,30,.98)', sidebar:'rgba(4,13,26,.9)', input:'rgba(0,20,60,.5)', inputBdr:'rgba(30,111,204,.2)', optBg:'#0A1E38' },
+    erdo:      { bg:'#050E08', bg2:'#0A1C10', accent:'#18794E', text:'#C8F0D8', text2:'#6AB888', text3:'#2A6040', modal:'rgba(8,24,14,.98)', modal2:'rgba(5,14,8,.98)', sidebar:'rgba(5,14,8,.9)', input:'rgba(0,30,12,.5)', inputBdr:'rgba(24,121,78,.2)', optBg:'#0A1C10' },
+    borostyan: { bg:'#120A00', bg2:'#1E1000', accent:'#C87820', text:'#FFE0A0', text2:'#C89040', text3:'#7A5018', modal:'rgba(24,14,0,.98)', modal2:'rgba(14,8,0,.98)', sidebar:'rgba(18,10,0,.9)', input:'rgba(40,20,0,.5)', inputBdr:'rgba(200,120,32,.2)', optBg:'#1E1200' },
+    karbon:    { bg:'#0E0E0F', bg2:'#161618', accent:'#555558', text:'#E4E4E4', text2:'#888888', text3:'#484848', modal:'rgba(18,18,20,.98)', modal2:'rgba(12,12,14,.98)', sidebar:'rgba(14,14,15,.95)', input:'rgba(0,0,0,.5)', inputBdr:'rgba(255,255,255,.08)', optBg:'#1A1A1C' },
+    rozsa:     { bg:'#140610', bg2:'#200A18', accent:'#B82860', text:'#FFD0E0', text2:'#C06080', text3:'#802040', modal:'rgba(24,8,18,.98)', modal2:'rgba(14,4,10,.98)', sidebar:'rgba(20,6,16,.9)', input:'rgba(40,0,20,.5)', inputBdr:'rgba(184,40,96,.2)', optBg:'#200A18' },
+  };
+  const p = themes[t] || themes.dark;
+
+  // ── App background ─────────────────────────────────────────────────────
+  const bgEl = document.querySelector('.bg');
+  if (bgEl) bgEl.style.background =
+    `linear-gradient(135deg,${p.bg} 0%,${p.bg2} 50%,${p.bg} 100%)`;
+  document.body.style.background = p.bg;
+  document.body.style.color      = p.text;
+
+  // ── Sidebar ────────────────────────────────────────────────────────────
+  const sb = document.querySelector('.sb');
+  if (sb) { sb.style.background = p.sidebar; sb.style.borderColor = p.inputBdr; }
+
+  // ── Blobs ──────────────────────────────────────────────────────────────
+  document.querySelectorAll('.blob').forEach(b => b.style.opacity = dark ? '0.3' : '0.15');
+
+  // ── Modals ────────────────────────────────────────────────────────────
+  const modalBg = `linear-gradient(145deg,${p.modal},${p.modal2})`;
+  document.querySelectorAll('.modal').forEach(m => {
+    m.style.background   = modalBg;
+    m.style.borderColor  = p.inputBdr;
+  });
+  document.querySelectorAll('.modal-body,.modal-hdr').forEach(m => m.style.color = p.text);
+  document.querySelectorAll('.modal-title').forEach(m => m.style.color = p.text);
+  document.querySelectorAll('.modal-close').forEach(m => m.style.color = p.text3);
+
+  // ── Labels ────────────────────────────────────────────────────────────
+  document.querySelectorAll('.s-label').forEach(el => el.style.color = p.text);
+  document.querySelectorAll('.s-desc').forEach(el => el.style.color = p.text2);
+  document.querySelectorAll('.s-group h3').forEach(el => el.style.color = p.text3);
+
+  // ── Selects ───────────────────────────────────────────────────────────
+  const arrowCol = dark ? '%234A5568' : '%239388B8';
+  const arrowSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='${arrowCol}' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`;
+  document.querySelectorAll('select').forEach(el => {
+    el.style.backgroundColor    = p.input;
+    el.style.borderColor        = p.inputBdr;
+    el.style.color              = p.text;
+    el.style.backgroundImage    = arrowSvg;
+    el.style.backgroundRepeat   = 'no-repeat';
+    el.style.backgroundPosition = 'right 8px center';
+    Array.from(el.options).forEach(opt => {
+      opt.style.backgroundColor = p.optBg;
+      opt.style.color           = p.text;
+    });
+  });
+
+  // ── Inputs ────────────────────────────────────────────────────────────
+  document.querySelectorAll('input[type=text],input[type=password],input[type=time],textarea').forEach(el => {
+    el.style.backgroundColor = p.input;
+    el.style.borderColor     = p.inputBdr;
+    el.style.color           = p.text;
+  });
+
+  // ── Toggle sliders — explicit per-theme colors ──────────────────────
+  document.querySelectorAll('.toggle input').forEach(inp => {
+    const sl = inp.nextElementSibling;
+    if (!sl) return;
+    if (inp.checked) {
+      sl.style.background  = p.accent;
+      sl.style.borderColor = p.accent;
+    } else {
+      sl.style.background  = dark ? 'rgba(255,255,255,.18)' : '#C4C9E0';
+      sl.style.borderColor = dark ? 'rgba(255,255,255,.2)'  : '#A8AECE';
+    }
+  });
+
+  // ── Sidebar cards & sections ──────────────────────────────────────────
+  document.querySelectorAll('.sb-card,.sched-card,.cmp-file-box,.ext-url-list').forEach(el => {
+    el.style.background  = dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.7)';
+    el.style.borderColor = p.inputBdr;
+  });
+  document.querySelectorAll('.sb-sec,.sb-lbl,.s-label,.cmp-file-label,.dz-text').forEach(el => {
+    el.style.color = p.text;
+  });
+  document.querySelectorAll('.sb-logo-name,.modal-title,.tbl-row,.code-cell').forEach(el => {
+    el.style.color = p.text;
+  });
+  document.querySelectorAll('.text2,.sb-logo-ver,.dz-sub,.cmp-desc,.ext-stat').forEach(el => {
+    el.style.color = p.text2;
+  });
+
+  // ── Update box in sidebar ────────────────────────────────────────────
+  const updBox = document.getElementById('sb-update-box');
+  if (updBox) {
+    updBox.style.background   = dark ? `rgba(${p.accent.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.12)` : 'rgba(107,70,239,.1)';
+    updBox.style.borderColor  = dark ? 'rgba(123,92,240,.35)' : 'rgba(107,70,239,.3)';
+  }
+
+  // ── Stats row ─────────────────────────────────────────────────────────
+  const statsRow = document.querySelector('.stats-row');
+  if (statsRow) {
+    statsRow.style.background   = dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.75)';
+    statsRow.style.borderColor  = p.inputBdr;
+  }
+
+  // ── Results & right panel ─────────────────────────────────────────────
+  document.querySelectorAll('.results-panel,.right-panel').forEach(el => {
+    el.style.background  = dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.75)';
+    el.style.borderColor = p.inputBdr;
+  });
+
+  // ── Version number — visible in all themes ───────────────────────────
+  const verEl = document.getElementById('app-version');
+  if (verEl) {
+    verEl.style.color   = p.text2;
+    verEl.style.opacity = '1';
+  }
+
+  // ── Update theme toggle button visual in settings select ──────────────
+  const themeEl = document.getElementById('s-theme');
+  if (themeEl) {
+    themeEl.style.backgroundColor = p.input;
+    themeEl.style.color           = p.text;
+    themeEl.style.borderColor     = p.inputBdr;
   }
 }
-function wsUnlockView() {
-  document.getElementById('ws-locked-view').style.display   = 'none';
-  document.getElementById('ws-unlocked-view').style.display = 'flex';
+
+function updateStats() {
+  document.getElementById('s-van').textContent   = state.stats.van;
+  document.getElementById('s-nincs').textContent = state.stats.nincs;
+  document.getElementById('s-kulso').textContent = state.stats.kulso;
 }
-function wsLock() {
-  wsCurrentPin = '';
-  document.getElementById('ws-url').value   = '';
-  document.getElementById('ws-email').value = '';
-  document.getElementById('ws-pass').value  = '';
-  document.getElementById('ws-locked-view').style.display   = 'flex';
-  document.getElementById('ws-unlocked-view').style.display = 'none';
+
+function updateStartBtn() {
+  document.getElementById('btn-start').textContent =
+    state.canContinue ? t('btn_continue') : t('btn_start');
 }
-async function wsSaveCredentials() {
-  if (!wsCurrentPin) { wsOpenUnlock(); return; }
-  const r = await pywebview.api.ws_save_credentials(
-    wsCurrentPin,
-    document.getElementById('ws-url').value.trim(),
-    document.getElementById('ws-email').value.trim(),
-    document.getElementById('ws-pass').value.trim()
-  );
-  if (r.ok) {
-    const btn = event.target;
-    btn.textContent = '✓ Mentve!';
-    setTimeout(() => btn.textContent = '💾 Mentés', 2000);
+
+function resetStats() {
+  state.stats = {van:0,nincs:0,kulso:0,ism:0};
+  ['s-done','s-van','s-nincs','s-kulso'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('s-total').textContent = '—';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('pct-text').textContent = '0 / 0 (0%)';
+}
+
+function addRow(code, avail, price, images) {
+  const body = document.getElementById('table-body');
+  const cls = {Van:'badge-van',Nincs:'badge-nincs','Külső raktár':'badge-kulso'}[avail]||'badge-ism';
+  const dot = avail==='Ismeretlen'?'○':'●';
+  const row = document.createElement('div'); row.className = 'tbl-row';
+  const imgCount = typeof images !== 'undefined' && images > 0 ? images : '—';
+  const imgDisplay = imgCount !== '—'
+    ? `<span style="font-size:10px;color:${imgCount > 3 ? 'var(--green)' : 'var(--text3)'}">📷 ${imgCount}</span>`
+    : '<span style="color:var(--text3);font-size:10px">—</span>';
+  row.innerHTML = `<div class="code-cell">${esc(code)}</div>
+    <div><span class="badge ${cls}">${dot} ${esc(avail)}</span></div>
+    <div class="price-cell">${esc(price||'—')}</div>
+    <div style="text-align:center;display:flex;align-items:center;justify-content:center">${imgDisplay}</div>`;
+  body.appendChild(row); body.scrollTop = body.scrollHeight;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, icon='✓') {
+  const ex = document.querySelector('.toast'); if(ex) ex.remove();
+  const t = document.createElement('div'); t.className='toast';
+  t.innerHTML=`<span style="font-size:15px">${icon}</span> ${msg}`;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2800);
+}
+
+function clearLog() { document.getElementById('log-body').innerHTML=''; }
+function clearResults() { document.getElementById('table-body').innerHTML=''; resetStats(); }
+function dismissBanner() { document.getElementById('update-banner').classList.remove('show'); }
+function dismissUpdate() {
+  // Hide sidebar box for this session
+  const box = document.getElementById('sb-update-box');
+  if (box) box.style.display = 'none';
+  dismissBanner();
+  onLog('[--] Frissítés elhalasztva');
+}
+async function doUpdate() {
+  document.getElementById('upd-now-btn').style.display='none';
+  document.getElementById('upd-dismiss-btn').style.display='none';
+  await py('do_update', state.updateAsset, state.updateVersion);
+}
+async function checkUpdate() { onLog('[--] Frissítés keresése...'); await py('check_update'); }
+
+// ══ URL AUTO-FIX ══════════════════════════════════════════════════════════
+function fixUrl(raw) {
+  if (!raw || !raw.trim()) return raw;
+  let url = raw.trim();
+
+  // Remove accidental whitespace inside
+  url = url.replace(/\s+/g, '');
+
+  // Add scheme if missing
+  if (!url.match(/^https?:\/\//i)) {
+    // Handle cases like "//domain.com"
+    if (url.startsWith('//')) url = 'https:' + url;
+    else url = 'https://' + url;
+  }
+
+  // Normalize scheme to lowercase
+  url = url.replace(/^HTTP:/i, 'http:').replace(/^HTTPS:/i, 'https:');
+
+  // Try to parse and clean
+  try {
+    const parsed = new URL(url);
+    // Always return just scheme + host — no path, query or hash
+    // The app constructs its own paths (/product-search/etc.)
+    return parsed.protocol + '//' + parsed.host;
+  } catch(e) {
+    // URL parsing failed — strip path manually
+    return url.split('/').slice(0, 3).join('/').replace(/\/+$/, '');
   }
 }
 
-async function runWebshopCheck() {
-  let codes = [];
-  if (wsSource === 'results') {
-    codes = (window._tableData || []).filter(r => r.avail === 'Van' || r.avail === 'Rendelhető').map(r => r.code);
+let _lastFixedUrl = '';
+
+function showUrlFix(original, fixed) {
+  const badge = document.getElementById('url-fix-badge');
+  if (original !== fixed) {
+    badge.style.display = 'block';
+    badge.textContent = '✓ Javítva: ' + fixed;
+    _lastFixedUrl = fixed;
   } else {
-    codes = wsFileCodes;
+    badge.style.display = 'none';
+    _lastFixedUrl = '';
   }
-  if (!codes.length) { alert('Nincs ellenőrizendő cikkszám!'); return; }
+}
 
-  // Ha nincs PIN a sessionben, kérjük be
-  if (!wsCurrentPin) {
-    wsPinMode = 'run';
-    wsPendingCodes = codes;
-    document.getElementById('ws-pin-title').textContent = '🔑 PIN szükséges';
-    document.getElementById('ws-pin-desc').textContent  = 'Add meg a PIN kódot az ellenőrzés indításához.';
-    document.getElementById('ws-pin-lbl1').textContent  = 'PIN kód';
-    document.getElementById('ws-pin-new-row').style.display = 'none';
-    document.getElementById('ws-pin-old-row').style.display = 'none';
-    document.getElementById('ws-pin-input').value = '';
-    document.getElementById('ws-pin-error').style.display = 'none';
-    document.getElementById('ws-pin-overlay').style.display = 'flex';
-    setTimeout(() => document.getElementById('ws-pin-input').focus(), 100);
+function onUrlInput() {
+  // Hide fix badge while typing
+  document.getElementById('url-fix-badge').style.display = 'none';
+}
+
+function onUrlPaste(e) {
+  // Get pasted text
+  e.preventDefault();
+  const pasted = (e.clipboardData || window.clipboardData).getData('text');
+  const el = document.getElementById('url');
+
+  // Insert at cursor
+  const start = el.selectionStart, end = el.selectionEnd;
+  const current = el.value;
+  const newVal = current.slice(0, start) + pasted + current.slice(end);
+
+  // Fix the whole value
+  const fixed = fixUrl(newVal);
+  el.value = fixed;
+  el.setSelectionRange(fixed.length, fixed.length);
+
+  showUrlFix(newVal.trim(), fixed);
+}
+
+function onUrlBlur() {
+  const el = document.getElementById('url');
+  const original = el.value.trim();
+  if (!original || original === 'https://') return;
+
+  const fixed = fixUrl(original);
+  if (fixed !== original) {
+    el.value = fixed;
+    showUrlFix(original, fixed);
+  }
+  detectLogin();
+}
+
+// ══ LOGIN DETECTION ════════════════════════════════════════════════════════
+async function detectLogin() {
+  const url = document.getElementById('url').value.trim();
+  if (!url || url==='https://' || url==='https') return;
+  const b = document.getElementById('detect-badge');
+  b.style.display='block'; b.style.color='var(--text3)'; b.textContent=t('detecting');
+  try {
+    const req = await py('detect_login', url);
+    onLoginDetected(req);
+  } catch(e) { b.textContent='⚠ Nem sikerült'; }
+}
+
+// ══ FILE SOURCE ════════════════════════════════════════════════════════════
+async function browseFile(type) {
+  state.sourceType = type;
+  const path = await py('browse_file', type);
+  if (!path) return;
+  await loadFile(path, type, 0);
+}
+
+async function loadFile(path, type, colIndex) {
+  state.sourcePath = path;
+  document.getElementById('txt-path').value = path;
+  const result = await py('parse_file', path, type, colIndex);
+  if (!result) { showToast('Nem sikerült beolvasni', '✗'); return; }
+  state.sourceData = result.codes;
+  const filename = path.split(/[/\\]/).pop();
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.querySelector('.dz-icon').textContent = '✅';
+  document.querySelector('.dz-text').textContent = filename;
+  document.querySelector('.dz-sub').textContent = `${result.codes.length} cikkszám`;
+  document.querySelector('.dz-sub').style.color = 'var(--green)';
+  const ld = document.getElementById('dz-loaded');
+  ld.style.display='block'; ld.textContent = type.toUpperCase();
+  const picker = document.getElementById('col-picker');
+  if (type==='csv'||type==='xlsx') {
+    picker.style.display='block';
+    document.getElementById('col-select').value = colIndex;
+    if (result.preview) document.getElementById('col-preview').textContent =
+      'Előnézet: ' + result.preview.slice(0,4).join(', ');
+  } else { picker.style.display='none'; }
+  showToast(`${result.codes.length} cikkszám betöltve (${type.toUpperCase()})`, '✅');
+}
+
+async function reloadWithCol() {
+  const col = parseInt(document.getElementById('col-select').value);
+  if (state.sourcePath) await loadFile(state.sourcePath, state.sourceType, col);
+}
+
+function clearSourceFile() {
+  state.sourceData=[]; state.sourcePath=''; state.sourceType='txt';
+  document.getElementById('txt-path').value='';
+  const dz=document.getElementById('drop-zone'); dz.classList.remove('has-file');
+  document.querySelector('.dz-icon').textContent='📥';
+  document.querySelector('.dz-text').textContent='Húzd ide a fájlt';
+  document.querySelector('.dz-sub').textContent='TXT · CSV · Excel';
+  document.querySelector('.dz-sub').style.color='';
+  document.getElementById('dz-loaded').style.display='none';
+  document.getElementById('col-picker').style.display='none';
+  showToast('Forrás törölve');
+}
+
+function dzDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function dzDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+async function dzDrop(e) {
+  e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if(!f) return;
+  const ext = f.name.split('.').pop().toLowerCase();
+  const type = ext==='xlsx'||ext==='xls'?'xlsx':ext==='csv'?'csv':'txt';
+  showToast('Fájl húzás: kérlek a gombokat használd', '⚠');
+}
+
+// ══ PROCESS CONTROL ════════════════════════════════════════════════════════
+function startAction() {
+  if (state.canContinue) runProcess(true);
+  else openStartModal();
+}
+
+function openStartModal() {
+  document.getElementById('sm-sleep').value     = document.getElementById('sleep').value || '0.8';
+  document.getElementById('sm-save-every').value= document.getElementById('save-every').value || '100';
+  document.getElementById('sm-sort').value      = document.getElementById('sort-order').value || 'abc';
+  document.getElementById('sm-auto-rm').checked = document.getElementById('auto-rm-val').value==='true';
+  document.getElementById('sm-dont-ask').checked= false;
+  document.getElementById('sm-save-dup').checked= document.getElementById('save-dup-val').value!=='false';
+  document.getElementById('start-modal-overlay').classList.add('show');
+}
+
+function closeStartModal() { document.getElementById('start-modal-overlay').classList.remove('show'); }
+function closeStartModalIfBg(e) { if(e.target===document.getElementById('start-modal-overlay')) closeStartModal(); }
+
+function confirmStart() {
+  document.getElementById('sleep').value      = document.getElementById('sm-sleep').value;
+  document.getElementById('save-every').value = document.getElementById('sm-save-every').value;
+  document.getElementById('sort-order').value = document.getElementById('sm-sort').value;
+  document.getElementById('auto-rm-val').value= document.getElementById('sm-auto-rm').checked?'true':'false';
+  document.getElementById('save-dup-val').value=document.getElementById('sm-save-dup').checked?'true':'false';
+  closeStartModal();
+  runProcess(false);
+}
+
+async function runProcess(skipDup) {
+  const config = {
+    url:       document.getElementById('url').value.trim(),
+    username:  document.getElementById('username').value.trim(),
+    password:  document.getElementById('password').value.trim(),
+    req_login: document.getElementById('login-required').checked,
+    txt_path:  document.getElementById('txt-path').value.trim(),
+    xlsx_path: '',
+    sleep_s:   parseFloat(document.getElementById('sleep').value)||0.8,
+    save_every:parseInt(document.getElementById('save-every').value)||100,
+    sort_order:document.getElementById('sort-order').value||'abc',
+    auto_rm:   document.getElementById('auto-rm-val').value==='true',
+    dont_ask:  document.getElementById('sm-dont-ask')?document.getElementById('sm-dont-ask').checked:false,
+    save_dup:  document.getElementById('save-dup-val').value!=='false',
+    manual:    document.getElementById('manual-codes').value.trim(),
+    preloaded: state.sourceData,
+    skip_dup:  skipDup,
+  };
+  resetStats();
+  state.running=true; updateStartBtn();
+  document.getElementById('btn-start').disabled=true;
+  const ok = await py('start_process', config);
+  if (ok) { state.canContinue=true; }
+  else { state.running=false; state.canContinue=false; }
+  document.getElementById('btn-start').disabled=false;
+  updateStartBtn();
+}
+
+function stopProcess() {
+  if (!state.running && !state.canContinue) return;
+  py('stop_process'); state.running=false; state.canContinue=true; updateStartBtn();
+}
+
+function restartProcess() {
+  py('restart_process');
+  state.running=false; state.canContinue=false; state.sourceData=[];
+  resetStats(); updateStartBtn();
+}
+
+function resolveUnknown(action) {
+  const applyAll = document.getElementById('unk-apply-all').checked;
+  document.getElementById('unknown-overlay').classList.remove('show');
+  if (state.unknownResolve) {
+    state.unknownResolve({action, applyAll});
+    state.unknownResolve=null;
+    py('set_unknown_result', action, applyAll).catch(()=>{});
+  }
+}
+
+
+
+// ══ SETTINGS ══════════════════════════════════════════════════════════════
+// Uninstall with double confirmation
+async function confirmUninstall() {
+  if (!confirm('Biztosan el szeretnéd távolítani a CikkChecker alkalmazást?')) return;
+  if (!confirm('Megerősítés: az eltávolítás után az app bezárul. Folytatod?')) return;
+  const ok = await py('uninstall_app');
+  if (!ok) alert('Az eltávolító nem található. Használd a Vezérlőpultot.');
+}
+
+// OS theme change listener for "rendszer" mode
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  const current = document.getElementById('s-theme')?.value;
+  if (current === 'rendszer') applyTheme('rendszer');
+});
+
+// Auto-save settings on every change — saves everything
+async function autoSaveSettings() {
+  const g = id => document.getElementById(id);
+  const cfg = {
+    // Megjelenés
+    theme:            g('s-theme')?.value          || 'dark',
+    language:         g('s-lang')?.value           || 'hu',
+    // Frissítések
+    auto_update:      g('s-auto-update')?.checked  ?? true,
+    update_interval:  g('s-upd-interval')?.value   || 'on_start',
+    // Futtatás
+    sleep_seconds:    parseFloat(g('s-sleep')?.value)    || 0.8,
+    save_every:       parseInt(g('s-save-every')?.value)  || 100,
+    show_price:       g('s-show-price')?.checked   ?? true,
+    sort_order:       g('sort-order')?.value       || 'abc',
+    // Duplikátumok
+    auto_rm_dup:      g('s-auto-rm')?.checked      ?? false,
+    dont_ask_dup:     g('s-dont-ask')?.checked     ?? false,
+    save_dup_txt:     g('s-save-dup')?.checked     ?? true,
+    // Értesítések
+    notify_on_done:   g('s-notify')?.checked       ?? true,
+    // Kapcsolat
+    last_url:         g('url')?.value              || '',
+    last_username:    g('username')?.value         || '',
+    last_login_req:   g('login-required')?.checked ?? false,
+    // Több weboldal
+    extra_urls:       g('extra-urls')?.value       || '',
+    // Ütemező
+    sched_enabled:    g('sched-enabled')?.checked  ?? false,
+    sched_time:       g('sched-time')?.value       || '08:00',
+    sched_days:       getActiveDays(),
+    // Export
+    auto_export_csv:  g('s-auto-csv')?.checked     ?? false,
+    auto_export_excel:g('s-auto-excel')?.checked   ?? false,
+    export_path:      g('s-export-path')?.value    || '',
+    // Eredmények
+    auto_clear:       g('s-auto-clear')?.checked   ?? false,
+  };
+  // Sync hidden inputs
+  if (g('sleep'))        g('sleep').value        = cfg.sleep_seconds;
+  if (g('save-every'))   g('save-every').value   = cfg.save_every;
+  if (g('sort-order'))   g('sort-order').value   = cfg.sort_order;
+  if (g('auto-rm-val'))  g('auto-rm-val').value  = cfg.auto_rm_dup  ? 'true' : 'false';
+  if (g('save-dup-val')) g('save-dup-val').value = cfg.save_dup_txt ? 'true' : 'false';
+  await py('save_config', cfg).catch(() => {});
+}
+
+// s-sleep and s-save-every save on blur/enter
+function onSettingInputBlur() { autoSaveSettings(); }
+
+function toggleExportPath() {
+  const show = document.getElementById('s-auto-csv')?.checked ||
+               document.getElementById('s-auto-excel')?.checked;
+  const row  = document.getElementById('s-export-path-row');
+  if (row) row.style.display = show ? 'flex' : 'none';
+}
+
+async function browseExportPath() {
+  const path = await py('browse_folder');
+  if (path) {
+    const el = document.getElementById('s-export-path');
+    if (el) { el.value = path; autoSaveSettings(); }
+  }
+}
+
+// Global toggle click handler — update visual immediately
+document.addEventListener('change', function(e) {
+  if (e.target.type !== 'checkbox' || !e.target.closest('.toggle')) return;
+  const sl  = e.target.nextElementSibling;
+  if (!sl) return;
+  const t   = document.documentElement.getAttribute('data-theme') || 'dark';
+  const LIGHT = ['hofeher','hofehér','light'];
+  const dark  = !LIGHT.includes(t);
+  if (e.target.checked) {
+    const accentMap = { dark:'#7B5CF0', hofeher:'#6B46EF', tengerke:'#1E6FCC',
+      erdo:'#18794E', borostyan:'#C87820', karbon:'#555558', rozsa:'#B82860' };
+    const accent = accentMap[t] || '#7B5CF0';
+    sl.style.background  = accent;
+    sl.style.borderColor = accent;
+  } else {
+    sl.style.background  = dark ? 'rgba(255,255,255,.18)' : '#C4C9E0';
+    sl.style.borderColor = dark ? 'rgba(255,255,255,.2)'  : '#A8AECE';
+  }
+});
+
+function openSettings() {
+  const s=document.getElementById('sleep'),se=document.getElementById('save-every');
+  if(s?.value) document.getElementById('s-sleep').value=s.value;
+  if(se?.value) document.getElementById('s-save-every').value=se.value;
+  document.getElementById('s-auto-rm').checked  = document.getElementById('auto-rm-val').value==='true';
+  document.getElementById('s-save-dup').checked = document.getElementById('save-dup-val').value!=='false';
+  toggleManualUpdateBtn();
+  document.getElementById('settings-overlay').classList.add('show');
+}
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('show'); }
+function closeSettingsIfBg(e) { if(e.target===document.getElementById('settings-overlay')) closeSettings(); }
+
+function toggleManualUpdateBtn() {
+  // Manual check is always visible; only interval row toggles
+  const auto = document.getElementById('s-auto-update').checked;
+  const ir = document.getElementById('upd-interval-row');
+  if (ir) ir.style.display = auto ? 'flex' : 'none';
+}
+
+async function saveSettings() {
+  const theme    = document.getElementById('s-theme').value;
+  const sleepVal = parseFloat(document.getElementById('s-sleep').value)||0.8;
+  const saveEv   = parseInt(document.getElementById('s-save-every').value)||100;
+  const autoRm   = document.getElementById('s-auto-rm').checked;
+  const saveDup  = document.getElementById('s-save-dup').checked;
+  applyTheme(theme);
+  document.getElementById('sleep').value       = sleepVal;
+  document.getElementById('save-every').value  = saveEv;
+  document.getElementById('auto-rm-val').value = autoRm?'true':'false';
+  document.getElementById('save-dup-val').value= saveDup?'true':'false';
+  const cfg = {
+    theme, language:document.getElementById('s-lang').value,
+    auto_update:document.getElementById('s-auto-update').checked,
+    update_interval:document.getElementById('s-upd-interval').value,
+    sleep_seconds:sleepVal, save_every:saveEv,
+    show_price:document.getElementById('s-show-price').checked,
+    auto_rm_dup:autoRm, dont_ask_dup:document.getElementById('s-dont-ask').checked,
+    save_dup_txt:saveDup,
+  };
+  applyLanguage(cfg.language);
+  await py('save_config', cfg);
+  toggleManualUpdateBtn();
+  closeSettings();
+  showToast(t('settings_title') + ' ✓');
+}
+
+function applyConfig(cfg) {
+  function set(id,val) {
+    const el=document.getElementById(id); if(!el||val===undefined||val===null) return;
+    if(el.type==='checkbox') el.checked=Boolean(val); else el.value=val;
+  }
+  if (cfg.theme) {
+    const themeEl = document.getElementById('s-theme');
+    // Find matching option (exact or prefix match)
+    if (themeEl) {
+      const opt = Array.from(themeEl.options).find(o => o.value === cfg.theme);
+      if (opt) themeEl.value = cfg.theme;
+    }
+    applyTheme(cfg.theme);
+  }
+  set('sleep',cfg.sleep_seconds); set('save-every',cfg.save_every);
+  set('sort-order',cfg.sort_order);
+  set('s-sleep',cfg.sleep_seconds); set('s-save-every',cfg.save_every);
+  set('s-lang',cfg.language); set('s-auto-update',cfg.auto_update);
+  set('s-upd-interval',cfg.update_interval); set('s-show-price',cfg.show_price);
+  set('s-auto-rm',cfg.auto_rm_dup); set('s-dont-ask',cfg.dont_ask_dup);
+  set('s-save-dup',cfg.save_dup_txt);
+  if(cfg.auto_rm_dup!==undefined) document.getElementById('auto-rm-val').value=cfg.auto_rm_dup?'true':'false';
+  if(cfg.save_dup_txt!==undefined) document.getElementById('save-dup-val').value=cfg.save_dup_txt?'true':'false';
+  if(cfg.last_url)  set('url',cfg.last_url);
+  if(cfg.last_txt && cfg.last_txt_type) loadFile(cfg.last_txt,cfg.last_txt_type,0);
+  if(cfg.app_version){
+    const el=document.getElementById('app-version');
+    if(el){el.textContent='v'+cfg.app_version;el.title='CikkChecker v'+cfg.app_version;}
+  }
+  if (cfg.language) applyLanguage(cfg.language);
+  // ── Kapcsolat ──────────────────────────────────────────────────────────
+  if (cfg.last_url) {
+    const urlEl = document.getElementById('url');
+    if (urlEl) urlEl.value = cfg.last_url;
+  }
+  if (cfg.last_username) {
+    const unEl = document.getElementById('username');
+    if (unEl) unEl.value = cfg.last_username;
+  }
+  if (cfg.last_login_req !== undefined) {
+    const lrEl = document.getElementById('login-required');
+    if (lrEl) lrEl.checked = Boolean(cfg.last_login_req);
+  }
+
+  // ── Több weboldal ───────────────────────────────────────────────────────
+  if (cfg.extra_urls) {
+    const euEl = document.getElementById('extra-urls');
+    if (euEl) euEl.value = cfg.extra_urls;
+  }
+
+  // ── Ütemező ─────────────────────────────────────────────────────────────
+  const schedSrc = cfg.scheduler || cfg;
+  const schedEnabled = schedSrc.sched_enabled || schedSrc.enabled || false;
+  const schedTime    = schedSrc.sched_time    || schedSrc.time    || '08:00';
+  const schedDays    = schedSrc.sched_days    || schedSrc.days    || [1,2,3,4,5];
+  const schedEl  = document.getElementById('sched-enabled');
+  const schedCfg = document.getElementById('sched-config');
+  const timeEl   = document.getElementById('sched-time');
+  if (schedEl) {
+    schedEl.checked = Boolean(schedEnabled);
+    if (schedCfg) schedCfg.style.display = schedEnabled ? 'flex' : 'none';
+  }
+  if (timeEl && schedTime) timeEl.value = schedTime;
+  if (Array.isArray(schedDays)) {
+    document.querySelectorAll('.day-btn').forEach(btn => {
+      btn.classList.toggle('active', schedDays.includes(parseInt(btn.getAttribute('data-day'))));
+    });
+  }
+  if (schedEnabled) startScheduler();
+
+  // ── Export & egyéb beállítások ──────────────────────────────────────────
+  const sn = id => document.getElementById(id);
+  if (cfg.auto_export_csv   !== undefined && sn('s-auto-csv'))
+    sn('s-auto-csv').checked    = Boolean(cfg.auto_export_csv);
+  if (cfg.auto_export_excel !== undefined && sn('s-auto-excel'))
+    sn('s-auto-excel').checked  = Boolean(cfg.auto_export_excel);
+  if (cfg.auto_clear        !== undefined && sn('s-auto-clear'))
+    sn('s-auto-clear').checked  = Boolean(cfg.auto_clear);
+  if (cfg.notify_on_done    !== undefined && sn('s-notify'))
+    sn('s-notify').checked      = Boolean(cfg.notify_on_done);
+  if (cfg.export_path && sn('s-export-path'))
+    sn('s-export-path').value   = cfg.export_path;
+  if (cfg.sort_order && sn('sort-order'))
+    sn('sort-order').value      = cfg.sort_order;
+
+  if (cfg.language) applyLanguage(cfg.language);
+  if (cfg.app_version) {
+    const el = document.getElementById('app-version');
+    if (el) el.textContent = 'v' + cfg.app_version;
+  }
+  toggleLogin(); toggleManualUpdateBtn();
+}
+
+// ══ EXPORT ════════════════════════════════════════════════════════════════
+function getTableData() {
+  return Array.from(document.querySelectorAll('#table-body .tbl-row')).map(row => ({
+    code:  row.querySelector('.code-cell')?.textContent.trim()||'',
+    avail: row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'')||'',
+    price: row.querySelector('.price-cell')?.textContent.trim()||'',
+  }));
+}
+
+async function exportCopy() {
+  const data=getTableData(); if(!data.length){showToast('Nincs adat','⚠');return;}
+  const txt='Cikkszám\tElérhetőség\tÁr\n'+data.map(r=>`${r.code}\t${r.avail}\t${r.price}`).join('\n');
+  try { await navigator.clipboard.writeText(txt); showToast(`${data.length} sor másolva`); }
+  catch(e) { showToast('Másolás sikertelen','✗'); }
+}
+
+function exportCSV() {
+  const data=getTableData(); if(!data.length){showToast('Nincs adat','⚠');return;}
+  const bom='\uFEFF',hdr='Cikkszám;Elérhetőség;Ár\n';
+  const rows=data.map(r=>`"${r.code}";"${r.avail}";"${r.price}"`).join('\n');
+  const blob=new Blob([bom+hdr+rows],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=`CikkChecker_${ds()}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast(`CSV letöltve (${data.length} sor)`);
+}
+
+async function exportExcel() {
+  const data=getTableData(); if(!data.length){showToast('Nincs adat','⚠');return;}
+  showToast('Excel mentési hely...','📊');
+  const result=await py('export_excel_dialog',data);
+  if(result) showToast('Excel mentve','📊');
+}
+
+function exportPDF() {
+  const data=getTableData(); if(!data.length){showToast('Nincs adat','⚠');return;}
+  const now=new Date().toLocaleString('hu-HU');
+  const van=data.filter(r=>r.avail==='Van').length;
+  const nincs=data.filter(r=>r.avail==='Nincs').length;
+  const kulso=data.filter(r=>r.avail==='Külső raktár').length;
+  const rows=data.map(r=>{
+    const cls=r.avail==='Van'?'print-van':r.avail==='Nincs'?'print-nincs':r.avail==='Külső raktár'?'print-kulso':'';
+    return `<tr><td style="font-family:monospace">${esc(r.code)}</td><td class="${cls}">${esc(r.avail)}</td><td style="text-align:center">${esc(r.price)}</td></tr>`;
+  }).join('');
+  const pa=document.getElementById('print-area');
+  pa.style.display='block';
+  pa.innerHTML=`<div class="print-title">CikkChecker — Eredmények</div>
+    <div class="print-meta">Exportálva: ${now} | Összes: ${data.length} | Van: ${van} | Nincs: ${nincs} | Külső: ${kulso}</div>
+    <table class="print-table"><thead><tr><th>Cikkszám</th><th>Elérhetőség</th><th>Ár</th></tr></thead><tbody>${rows}</tbody></table>`;
+  setTimeout(()=>{window.print();setTimeout(()=>pa.style.display='none',500);},100);
+}
+
+function ds() {
+  const d=new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ══ FÁJL ÖSSZEHASONLÍTÓ ═══════════════════════════════════════════════════
+const _cmp = { a: [], b: [], results: { only_a:[], only_b:[], both:[] } };
+
+function openComparator() {
+  document.getElementById('comparator-overlay').classList.add('show');
+}
+function closeComparator() {
+  document.getElementById('comparator-overlay').classList.remove('show');
+}
+function closeCmpIfBg(e) {
+  if (e.target === document.getElementById('comparator-overlay')) closeComparator();
+}
+
+async function cmpBrowse(side) {
+  const path = await py('browse_file', 'xlsx');
+  if (!path) return;
+  const ext  = path.split('.').pop().toLowerCase();
+  const type = ext==='xlsx'||ext==='xls' ? 'xlsx' : ext==='csv' ? 'csv' : 'txt';
+  _cmp[side + '_path'] = path;
+  _cmp[side + '_type'] = type;
+  const col  = parseInt(document.getElementById(`cmp-col-${side}`).value) || 0;
+  const result = await py('parse_file', path, type, col);
+  if (!result || !result.codes.length) { showToast('Nem sikerült beolvasni a fájlt', '✗'); return; }
+
+  _cmp[side] = result.codes;
+  const fname = path.split(/[/\\]/).pop();
+  document.getElementById(`cmp-name-${side}`).textContent   = fname;
+  document.getElementById(`cmp-name-${side}`).style.color   = side==='a' ? 'var(--accent2)' : 'var(--green)';
+  document.getElementById(`cmp-count-${side}`).textContent  = `${result.codes.length} cikkszám`;
+  document.getElementById(`cmp-box-${side}`).classList.add('loaded');
+  document.getElementById(`cmp-preview-${side}`).textContent = result.codes.slice(0,8).join('\n') + (result.codes.length>8 ? `\n... +${result.codes.length-8} további` : '');
+  showToast(`${side.toUpperCase()} fájl: ${result.codes.length} cikkszám`, '✅');
+
+  // Enable compare button if both loaded
+  if (_cmp.a.length && _cmp.b.length) {
+    const btn = document.getElementById('btn-cmp-run');
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
+async function cmpReload(side) {
+  if (!_cmp[side + '_path']) return;
+  const col = parseInt(document.getElementById(`cmp-col-${side}`).value) || 0;
+  const result = await py('parse_file', _cmp[side + '_path'], _cmp[side + '_type'], col);
+  if (!result) return;
+  _cmp[side] = result.codes;
+  document.getElementById(`cmp-count-${side}`).textContent = `${result.codes.length} cikkszám`;
+  document.getElementById(`cmp-preview-${side}`).textContent =
+    result.codes.slice(0,6).join('\n') + (result.codes.length>6 ? `\n...` : '');
+}
+
+function runComparator() {
+  if (!_cmp.a.length || !_cmp.b.length) return;
+  const setA = new Set(_cmp.a);
+  const setB = new Set(_cmp.b);
+
+  _cmp.results.only_a = _cmp.a.filter(c => !setB.has(c));
+  _cmp.results.only_b = _cmp.b.filter(c => !setA.has(c));
+  _cmp.results.both   = _cmp.a.filter(c =>  setB.has(c));
+
+  document.getElementById('cmp-n-only-a').textContent = _cmp.results.only_a.length;
+  document.getElementById('cmp-n-only-b').textContent = _cmp.results.only_b.length;
+  document.getElementById('cmp-n-both').textContent   = _cmp.results.both.length;
+  document.getElementById('cmp-results-section').style.display = 'block';
+
+  showToast(`Összehasonlítás kész — ${_cmp.results.only_a.length} csak A, ${_cmp.results.only_b.length} csak B, ${_cmp.results.both.length} közös`, '⚖');
+}
+
+function cmpLoadAndCheck(set) {
+  const map = { only_a: _cmp.results.only_a, only_b: _cmp.results.only_b,
+                both: _cmp.results.both, all: [...new Set([..._cmp.a, ..._cmp.b])] };
+  const codes = map[set] || [];
+  if (!codes.length) { showToast('Nincs adat ebben a halmazban', '⚠'); return; }
+
+  state.sourceData = [...codes];
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.querySelector('.dz-icon').textContent = '✅';
+  const labels = { only_a:'Csak A fájlból', only_b:'Csak B fájlból',
+                   both:'Mindkét fájlból', all:'A + B összes' };
+  document.querySelector('.dz-text').textContent = `${labels[set]}: ${codes.length} cikkszám`;
+  document.querySelector('.dz-sub').textContent  = 'Ellenőrzésre kész';
+  document.querySelector('.dz-sub').style.color  = 'var(--green)';
+  document.getElementById('txt-path').value      = '';
+
+  closeComparator();
+  showToast(`${codes.length} cikkszám betöltve — kattints az Indításra`, '✅');
+}
+
+function cmpExportCSV(set) {
+  const map = { only_a: _cmp.results.only_a, only_b: _cmp.results.only_b, both: _cmp.results.both };
+  const codes = map[set] || [];
+  if (!codes.length) { showToast('Nincs exportálható adat', '⚠'); return; }
+  const labels = { only_a:'CsakA', only_b:'CsakB', both:'Kozos' };
+  const bom  = '\uFEFF';
+  const blob = new Blob([bom + codes.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `CikkChecker_${labels[set]}_${ds()}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast(`${codes.length} cikkszám exportálva`);
+}
+
+// ══ KÓD KINYERŐ ══════════════════════════════════════════════════════════
+
+function addExtUrl() {
+  const list = document.getElementById('ext-url-list');
+  const row  = document.createElement('div'); row.className = 'ext-url-row';
+  row.innerHTML = `<input type="text" class="ext-url" placeholder="https://...">
+    <button class="ext-url-del" onclick="removeExtUrl(this)">✕</button>`;
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function removeExtUrl(btn) {
+  const rows = document.querySelectorAll('.ext-url-row');
+  if (rows.length <= 1) {
+    btn.closest('.ext-url-row').querySelector('input').value = '';
     return;
   }
-  wsDoRun(wsCurrentPin, codes);
+  btn.closest('.ext-url-row').remove();
 }
-let wsPendingCodes = [];
-async function wsDoRun(pin, codes) {
-  if (!codes) codes = wsPendingCodes;
-  wsRunning = true;
-  document.getElementById('ws-run-btn').disabled = true;
-  document.getElementById('ws-progress-box').style.display = 'block';
-  document.getElementById('ws-results-box').style.display = 'none';
-  document.getElementById('ws-error-box').style.display = 'none';
-  document.getElementById('ws-prog-bar').style.width = '0%';
-  document.getElementById('ws-prog-cur').textContent = `0 / ${codes.length}`;
-  await pywebview.api.ws_run_check_with_pin(pin, codes);
+
+function extLog(msg) {
+  const el = document.getElementById('ext-log');
+  if (el) el.textContent = msg;
 }
-function onWebshopCheckProgress(code, cur, total) {
-  const pct = Math.round(cur / total * 100);
-  document.getElementById('ws-prog-bar').style.width = pct + '%';
-  document.getElementById('ws-prog-cur').textContent = `${cur} / ${total}`;
-  document.getElementById('ws-prog-code').textContent = code;
+
+function extProgress(pct) {
+  const bar = document.getElementById('ext-prog-bar');
+  if (bar) bar.style.width = pct + '%';
 }
-function onWebshopCheckDone(result) {
-  wsRunning = false;
-  document.getElementById('ws-run-btn').disabled = false;
-  if (result.error) {
-    document.getElementById('ws-error-box').style.display = 'block';
-    document.getElementById('ws-error-box').textContent = '⚠ ' + result.error;
+
+async function runExtractor() {
+  const urls = Array.from(document.querySelectorAll('.ext-url'))
+    .map(el => el.value.trim()).filter(u => u.startsWith('http'));
+  if (!urls.length) { showToast('Adj meg legalább egy forrás URL-t', '⚠'); return; }
+
+  const selector  = document.getElementById('ext-selector').value.trim();
+  const maxPages  = parseInt(document.getElementById('ext-max-pages').value) || 10;
+  const needLogin = document.getElementById('ext-login').checked;
+  const user      = needLogin ? document.getElementById('username').value.trim() : '';
+  const pw        = needLogin ? document.getElementById('password').value.trim() : '';
+
+  // UI: show progress
+  document.getElementById('btn-ext-run').disabled = true;
+  document.getElementById('btn-ext-load').disabled = true;
+  document.getElementById('ext-progress').style.display = 'block';
+  document.getElementById('ext-result-section').style.display = 'none';
+  extLog('Kinyerés indul...');
+  extProgress(5);
+
+  try {
+    const result = await py('scrape_codes', urls, selector, maxPages, user, pw);
+
+    if (!result || !result.codes || !result.codes.length) {
+      extLog('⚠ Nem találtam cikkszámokat. Próbálj más CSS selectort.');
+      extProgress(0);
+      document.getElementById('btn-ext-run').disabled = false;
+      return;
+    }
+
+    extProgress(100);
+    extLog(`✓ Kész — ${result.codes.length} cikkszám kinyerve`);
+
+    document.getElementById('ext-preview').value = result.codes.join('\n');
+    document.getElementById('ext-stat').innerHTML =
+      `<strong>${result.codes.length}</strong> cikkszám, ${result.pages} oldal`;
+    document.getElementById('ext-result-section').style.display = 'block';
+    document.getElementById('btn-ext-load').disabled = false;
+
+  } catch(e) {
+    extLog('Hiba: ' + e);
+    extProgress(0);
+  }
+  document.getElementById('btn-ext-run').disabled = false;
+}
+
+function loadExtractedCodes() {
+  const txt = document.getElementById('ext-preview').value.trim();
+  if (!txt) return;
+  const codes = txt.split('\n').map(c => c.trim()).filter(Boolean);
+  if (!codes.length) return;
+
+  // Load into source data
+  state.sourceData = codes;
+  document.getElementById('txt-path').value = '';
+
+  // Update drop zone to show loaded state
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.querySelector('.dz-icon').textContent = '✅';
+  document.querySelector('.dz-text').textContent = `Kód kinyerőből: ${codes.length} cikkszám`;
+  document.querySelector('.dz-sub').textContent = 'Ellenőrzésre kész';
+  document.querySelector('.dz-sub').style.color = 'var(--green)';
+
+  closeExtractor();
+  showToast(`${codes.length} cikkszám betöltve — kattints az Indításra`, '✅');
+}
+
+// Python callback for progress updates during scraping
+function onExtractProgress(msg, pct) {
+  extLog(msg); extProgress(pct);
+}
+
+// ══ FILTER & SEARCH ═══════════════════════════════════════════════════════
+let _activeFilter = 'all';
+
+function setFilter(f) {
+  _activeFilter = f;
+  ['all','van','nincs','kulso','ism'].forEach(id => {
+    const btn = document.getElementById('fbtn-' + id);
+    if (btn) btn.classList.toggle('active', id === f);
+  });
+  applyFilter();
+}
+
+function applyFilter() {
+  const q   = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
+  const f   = _activeFilter;
+  const map = {van:'Van', nincs:'Nincs', kulso:'Külső raktár', ism:'Ismeretlen'};
+  document.querySelectorAll('#table-body .tbl-row').forEach(row => {
+    const code  = row.querySelector('.code-cell')?.textContent.toLowerCase() || '';
+    const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
+    const matchQ = !q || code.includes(q);
+    const matchF = f === 'all' || avail === (map[f] || '');
+    row.style.display = matchQ && matchF ? '' : 'none';
+  });
+}
+
+// ══ RECHECK MISSING ════════════════════════════════════════════════════════
+function recheckMissing() {
+  const missing = [];
+  document.querySelectorAll('#table-body .tbl-row').forEach(row => {
+    const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
+    if (avail === 'Nincs' || avail === 'Ismeretlen') {
+      const code = row.querySelector('.code-cell')?.textContent.trim();
+      if (code) missing.push(code);
+    }
+  });
+  if (!missing.length) { showToast('Nincs újraellenőrzendő cikk', 'ℹ'); return; }
+  // Remove those rows from table, pre-fill as new run
+  document.querySelectorAll('#table-body .tbl-row').forEach(row => {
+    const avail = row.querySelector('.badge')?.textContent.trim().replace(/^[●○]\s*/,'') || '';
+    if (avail === 'Nincs' || avail === 'Ismeretlen') row.remove();
+  });
+  // Pass codes as sourceData only — avoid duplication with manual textarea
+  state.sourceData = missing;
+  document.getElementById('manual-codes').value = '';  // clear to avoid double
+  showToast(`${missing.length} cikk újraellenőrzése indul`, '🔁');
+  openStartModal();
+}
+
+// ══ HISTORY ════════════════════════════════════════════════════════════════
+let _runHistory = [];
+
+async function loadHistory() {
+  try {
+    const h = await py('get_history');
+    if (h) { _runHistory = h; renderHistory(); }
+  } catch(e) {}
+}
+
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!_runHistory.length) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--text3);text-align:center;padding:20px">Még nincs mentett futtatás</div>';
     return;
   }
-  document.getElementById('ws-results-box').style.display = 'block';
-  document.getElementById('ws-res-van').textContent   = result.van;
-  document.getElementById('ws-res-nincs').textContent = result.nincs;
-  if (result.xlsx) {
-    document.getElementById('ws-xlsx-info').textContent = '✓ Excel mentve: ' + result.xlsx;
+  el.innerHTML = '';
+  [..._runHistory].reverse().slice(0,20).forEach((run, i) => {
+    const prev = _runHistory[_runHistory.length - 2 - i];
+    const newInStock  = prev ? run.van - prev.van : 0;
+    const goneInStock = prev ? prev.van - run.van : 0;
+    const div = document.createElement('div');
+    div.className = 'hist-entry';
+    div.innerHTML = `
+      <div class="hist-date">${run.date}</div>
+      <div class="hist-url">${run.url}</div>
+      <div class="hist-stats">
+        <span class="hist-stat hist-van">✓ ${run.van}</span>
+        <span class="hist-stat hist-nincs">✗ ${run.nincs}</span>
+        ${run.kulso ? `<span class="hist-stat hist-kulso">◈ ${run.kulso}</span>` : ''}
+        ${newInStock > 0  ? `<span class="hist-stat" style="color:var(--green)">▲ +${newInStock} visszajött</span>` : ''}
+        ${goneInStock > 0 ? `<span class="hist-stat" style="color:var(--red)">▼ -${goneInStock} elfogyott</span>` : ''}
+      </div>`;
+    div.onclick = () => showHistoryDetail(run);
+    el.appendChild(div);
+  });
+}
+
+function showHistoryDetail(run) {
+  // Load that run's results into the table
+  if (!run.results || !run.results.length) { showToast('Nincs részletes adat', 'ℹ'); return; }
+  clearResults();
+  run.results.forEach(r => addRow(r.code, r.avail, r.price || ''));
+  // Switch to results view
+  showToast(`${run.date} — ${run.results.length} eredmény betöltve`, '📊');
+}
+
+function saveRunToHistory(summary) {
+  py('save_history', summary).catch(()=>{});
+  _runHistory.push(summary);
+  renderHistory();
+}
+
+// ══ SCHEDULER ══════════════════════════════════════════════════════════════
+let _schedTimer = null;
+
+function toggleScheduler() {
+  const on = document.getElementById('sched-enabled').checked;
+  const cfg = document.getElementById('sched-config');
+  cfg.style.display = on ? 'flex' : 'none';
+  if (on) { startScheduler(); } else { stopScheduler(); }
+  py('save_scheduler', {
+    enabled: on,
+    time: document.getElementById('sched-time').value,
+    days: getActiveDays()
+  }).catch(()=>{});
+}
+
+function toggleDay(el) {
+  el.classList.toggle('active');
+  updateSchedulerNext();
+  py('save_scheduler', {
+    enabled: document.getElementById('sched-enabled').checked,
+    time: document.getElementById('sched-time').value,
+    days: getActiveDays()
+  }).catch(()=>{});
+}
+
+function getActiveDays() {
+  return Array.from(document.querySelectorAll('.day-btn.active'))
+    .map(el => parseInt(el.getAttribute('data-day')));
+}
+
+function updateSchedulerNext() {
+  const time  = document.getElementById('sched-time').value;
+  const days  = getActiveDays();
+  if (!time || !days.length) {
+    document.getElementById('sched-next').textContent = 'Nincs aktív nap kijelölve';
+    return;
+  }
+  const now  = new Date();
+  const [h,m]= time.split(':').map(Number);
+  let next   = null;
+  for (let i = 0; i <= 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    d.setHours(h, m, 0, 0);
+    if (d > now && days.includes(d.getDay())) { next = d; break; }
+  }
+  document.getElementById('sched-next').textContent = next
+    ? 'Következő: ' + next.toLocaleString('hu-HU', {weekday:'short',hour:'2-digit',minute:'2-digit'})
+    : 'Nincs aktív nap';
+}
+
+let _lastScheduledFire = '';
+
+function startScheduler() {
+  stopScheduler();
+  updateSchedulerNext();
+  _schedTimer = setInterval(() => {
+    const time = document.getElementById('sched-time').value;
+    const days = getActiveDays();
+    if (!time || !days.length || !document.getElementById('sched-enabled').checked) return;
+    const now = new Date();
+    const [h,m] = time.split(':').map(Number);
+    const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${h}-${m}`;
+    if (now.getHours()===h && now.getMinutes()===m && days.includes(now.getDay()) && key !== _lastScheduledFire) {
+      _lastScheduledFire = key;
+      if (!state.running) {
+        onLog('[⏰] Ütemezett futtatás indul...');
+        runProcess(false);
+      }
+    }
+  }, 20000); // check every 20 seconds
+}
+
+function stopScheduler() {
+  if (_schedTimer) { clearInterval(_schedTimer); _schedTimer = null; }
+}
+
+// ══ MULTI-SITE ════════════════════════════════════════════════════════════
+function getExtraUrls() {
+  const txt = document.getElementById('extra-urls')?.value.trim() || '';
+  return txt ? txt.split('\n').map(u => u.trim()).filter(u => u.startsWith('http')) : [];
+}
+
+// Override onDone to handle multi-site sequential runs
+let _multiSiteQueue = [];
+let _multiSiteResults = {};
+let _originalUrl = '';  // URL before multi-site run
+
+function onDone() {
+  onStatus('Kész ✓');
+  // Save history for current run
+  const url = document.getElementById('url').value.trim();
+  const summary = {
+    date: new Date().toLocaleString('hu-HU'),
+    url, ts: Date.now(),
+    van: state.stats.van, nincs: state.stats.nincs,
+    kulso: state.stats.kulso, ism: state.stats.ism,
+    total: state.stats.van + state.stats.nincs + state.stats.kulso + state.stats.ism,
+    results: getTableData().map(r => ({...r})),
+  };
+  saveRunToHistory(summary);
+
+  // Windows notification
+  py('notify', `Kész — ${summary.van} Van, ${summary.nincs} Nincs`, url).catch(()=>{});
+
+  // Enable recheck button
+  document.getElementById('btn-recheck').disabled = false;
+
+  if (_multiSiteQueue.length > 0) {
+    // Run next site
+    const nextUrl = _multiSiteQueue.shift();
+    onLog(`[🌐] Következő weboldal: ${nextUrl}`);
+    document.getElementById('url').value = nextUrl;
+    setTimeout(() => runProcess(true), 1000); // skip_dup, keep same codes
+  } else {
+    // All done
+    state.running = false; state.canContinue = false;
+    updateStartBtn();
+    document.getElementById('btn-start').disabled = false;
+    if (_originalUrl) {
+      // Restore to original main URL after multi-site
+      document.getElementById('url').value = _originalUrl;
+      _originalUrl = '';
+    }
   }
 }
+
+// Override startAction to handle multi-site
+const _originalConfirmStart = window.confirmStart;
+function confirmStart() {
+  const extraUrls = getExtraUrls();
+  const mainUrl = document.getElementById('url').value.trim();
+  _originalUrl = mainUrl; // save original URL to restore after multi-site
+  if (extraUrls.length > 0) {
+    _multiSiteQueue = extraUrls; // queue the extra ones
+    onLog(`[🌐] ${extraUrls.length + 1} weboldal sorban ellenőrizve`);
+  } else {
+    _multiSiteQueue = [];
+  }
+  // Save modal values (copy from original confirmStart)
+  document.getElementById('sleep').value      = document.getElementById('sm-sleep').value;
+  document.getElementById('save-every').value = document.getElementById('sm-save-every').value;
+  document.getElementById('sort-order').value = document.getElementById('sm-sort').value;
+  document.getElementById('auto-rm-val').value= document.getElementById('sm-auto-rm').checked?'true':'false';
+  document.getElementById('save-dup-val').value=document.getElementById('sm-save-dup').checked?'true':'false';
+  closeStartModal();
+  runProcess(false);
+}
+
+// Load history on init
+// pywebview fires this when API is ready — use as additional config restore trigger
+window.addEventListener('pywebviewready', async () => {
+  try {
+    const cfg = await py('get_config');
+    if (cfg) applyConfig(cfg);
+  } catch(e) {}
+  setTimeout(loadHistory, 500);
+});
+
+window.addEventListener('load', async () => {
+  setTimeout(loadHistory, 1500);
+});
+
+// Recheck button enabled by onDone() after each completed run
+
 </script>
+
 
 
 <script>
