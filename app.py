@@ -24,7 +24,7 @@ APP_VERSION = _read_version()
 UPDATE_REPO  = "Sanyi7511/CikkChecker-releases"
 UPDATE_ASSET = "CikkCheckerSetup.exe"
 # ── Webshop titkos aktiválás ─────────────────────────────────────────────────
-WEBSHOP_SECRET      = "BBEE4A7C6ADA21D5"   # <-- cseréld le a saját kódodra!
+WEBSHOP_SECRET      = "Olaszauto_2026"   # <-- cseréld le a saját kódodra!
 _WS_SECRET_HASH     = hashlib.sha256(WEBSHOP_SECRET.encode()).hexdigest()
 
 BINARY_NAME  = "checker_core.exe" if sys.platform == "win32" else "checker_core"
